@@ -75,14 +75,8 @@ const player = new Player(client, {
     liveBuffer: 40000,
     dlChunkSize: 0
   },
-  // Force inline volume to fix stream handling
-  audioPlayerOptions: {
-    noSubscriber: 'pause',
-    behaviors: {
-      noSubscriber: 'pause',
-      maxMissedFrames: Math.round(5000 / 20)
-    }
-  }
+  // CRITICAL FIX: Enable inline volume to fix 120ms bug
+  inlineVolume: true
 });
 require('./music-player')(player);
 
