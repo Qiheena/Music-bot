@@ -80,12 +80,12 @@ const {
   USE_API,
 
   // Project directory structure
-  CHAT_INPUT_COMMAND_DIR,
-  CONTEXT_MENU_COMMAND_DIR,
-  AUTO_COMPLETE_INTERACTION_DIR,
-  BUTTON_INTERACTION_DIR,
-  MODAL_INTERACTION_DIR,
-  SELECT_MENU_INTERACTION_DIR
+  CHAT_INPUT_COMMAND_DIR = 'src/commands',
+  CONTEXT_MENU_COMMAND_DIR = 'src/context-menus',
+  AUTO_COMPLETE_INTERACTION_DIR = 'src/interactions/autocomplete',
+  BUTTON_INTERACTION_DIR = 'src/interactions/buttons',
+  MODAL_INTERACTION_DIR = 'src/interactions/modals',
+  SELECT_MENU_INTERACTION_DIR = 'src/interactions/select-menus'
 } = process.env;
 
 // Listen for user requested shutdown
