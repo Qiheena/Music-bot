@@ -2,8 +2,6 @@
 const { existsSync } = require('fs');
 require('dotenv').config({ path: existsSync('.env') ? '.env' : '.env.example' });
 
-process.env.DP_FORCE_YTDL_MOD = 'play-dl';
-
 const logger = require('@mirasaki/logger');
 const chalk = require('chalk');
 const {
