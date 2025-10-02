@@ -14,7 +14,7 @@ const {
   VimeoExtractor,
   ReverbnationExtractor
 } = require('@discord-player/extractor');
-
+require('./server/webserver');
 // Argv
 const modeArg = process.argv.find((arg) => arg.startsWith('mode='));
 
