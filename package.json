@@ -33,6 +33,7 @@
   "dependencies": {
     "@discord-player/extractor": "^4.5.1",
     "@discordjs/rest": "^2.4.0",
+    "@distube/ytdl-core": "^4.16.12",
     "@mirasaki/logger": "file:./vendor/@mirasaki/logger",
     "chalk": "^4.1.2",
     "common-tags": "^1.8.2",
