@@ -2,6 +2,9 @@
 const { existsSync } = require('fs');
 require('dotenv').config({ path: existsSync('.env') ? '.env' : '.env.example' });
 
+// Force use of play-dl for more stable YouTube streaming
+process.env.DP_FORCE_YTDL_MOD = 'play-dl';
+
 const logger = require('@mirasaki/logger');
 const chalk = require('chalk');
 const {
@@ -280,16 +283,17 @@ if (USE_API === 'true') require('./server/');
 if (modeArg && modeArg.endsWith('test')) process.exit(0);
 
 (async () => {
-  // Register YouTube extractor first (required for Apple Music and Spotify fallback)
+  // Using play-dl as backend (set via DP_FORCE_YTDL_MOD)
+  // Register YouTube extractor with play-dl bridge
   await player.extractors.register(YoutubeiExtractor, {});
   
-  // If you don't want to use all of the extractors and register only the required ones manually, use
+  // Register other extractors
   if (clientConfig.plugins.soundCloud === true) await player.extractors.register(SoundCloudExtractor, {});
   if (clientConfig.plugins.fileAttachments === true) await player.extractors.register(AttachmentExtractor, {});
   if (clientConfig.plugins.appleMusic === true) await player.extractors.register(AppleMusicExtractor, {});
   if (clientConfig.plugins.vimeo === true) await player.extractors.register(VimeoExtractor, {});
   if (clientConfig.plugins.reverbNation === true) await player.extractors.register(ReverbnationExtractor, {});
-
+  
   // Logging in to our client
   client.login(DISCORD_BOT_TOKEN);
 })();
