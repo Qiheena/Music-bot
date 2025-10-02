@@ -17,6 +17,7 @@ const {
   VimeoExtractor,
   ReverbnationExtractor
 } = require('@discord-player/extractor');
+const { YoutubeiExtractor } = require('discord-player-youtubei');
 require('./server/webserver');
 // Argv
 const modeArg = process.argv.find((arg) => arg.startsWith('mode='));
@@ -281,6 +282,9 @@ if (USE_API === 'true') require('./server/');
 if (modeArg && modeArg.endsWith('test')) process.exit(0);
 
 (async () => {
+  // Register YouTube extractor first (required for Apple Music and Spotify fallback)
+  await player.extractors.register(YoutubeiExtractor, {});
+  
   // If you don't want to use all of the extractors and register only the required ones manually, use
   if (clientConfig.plugins.soundCloud === true) await player.extractors.register(SoundCloudExtractor, {});
   if (clientConfig.plugins.fileAttachments === true) await player.extractors.register(AttachmentExtractor, {});
