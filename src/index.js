@@ -2,8 +2,8 @@
 const { existsSync } = require('fs');
 require('dotenv').config({ path: existsSync('.env') ? '.env' : '.env.example' });
 
-// Force use of play-dl for more stable YouTube streaming
-process.env.DP_FORCE_YTDL_MOD = 'play-dl';
+// Force use of @distube/ytdl-core for more stable YouTube streaming
+process.env.DP_FORCE_YTDL_MOD = '@distube/ytdl-core';
 
 const logger = require('@mirasaki/logger');
 const chalk = require('chalk');
@@ -73,8 +73,26 @@ const player = new Player(client, {
     filter: 'audioonly',
     quality: 'highestaudio',
     liveBuffer: 40000
-  }
+  },
+  connectionTimeout: 30000
 });
+
+// Fix for immediate audio finish bug
+player.events.on('connection', (queue) => {
+  queue.connection.voiceConnection.on('stateChange', (oldState, newState) => {
+    const oldNetworking = Reflect.get(oldState, 'networking');
+    const newNetworking = Reflect.get(newState, 'networking');
+
+    const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
+      const newUdp = Reflect.get(newNetworkState, 'udp');
+      clearInterval(newUdp?.keepAliveInterval);
+    };
+
+    oldNetworking?.off('stateChange', networkStateChangeHandler);
+    newNetworking?.on('stateChange', networkStateChangeHandler);
+  });
+});
+
 require('./music-player')(player);
 
 // Destructuring from env
