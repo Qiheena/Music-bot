@@ -72,7 +72,16 @@ const player = new Player(client, {
     highWaterMark: 1 << 25,
     filter: 'audioonly',
     quality: 'highestaudio',
-    liveBuffer: 40000
+    liveBuffer: 40000,
+    dlChunkSize: 0
+  },
+  // Force inline volume to fix stream handling
+  audioPlayerOptions: {
+    noSubscriber: 'pause',
+    behaviors: {
+      noSubscriber: 'pause',
+      maxMissedFrames: Math.round(5000 / 20)
+    }
   }
 });
 require('./music-player')(player);
