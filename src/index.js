@@ -77,9 +77,7 @@ const player = new Player(client, {
     quality: 'highestaudio',
     liveBuffer: 40000,
     dlChunkSize: 0
-  },
-  // CRITICAL FIX: Enable inline volume to fix 120ms bug
-  inlineVolume: true
+  }
 });
 
 require('./music-player')(player);
@@ -290,11 +288,19 @@ if (USE_API === 'true') require('./server/');
 if (modeArg && modeArg.endsWith('test')) process.exit(0);
 
 (async () => {
-  // Using play-dl as backend (set via DP_FORCE_YTDL_MOD)
-  // Register YouTube extractor with play-dl bridge
-  await player.extractors.register(YoutubeiExtractor, {});
+  // Load default extractors (includes YouTube fix for 120ms bug)
+  await player.extractors.loadDefault((ext) => !['YouTubeExtractor'].includes(ext));
   
-  // Register other extractors
+  // Register YouTube extractor separately with proper config
+  await player.extractors.register(YoutubeiExtractor, {
+    authentication: undefined,
+    streamOptions: {
+      useClient: 'ANDROID',
+      highWaterMark: 1 << 25
+    }
+  });
+  
+  // Register additional extractors if needed
   if (clientConfig.plugins.soundCloud === true) await player.extractors.register(SoundCloudExtractor, {});
   if (clientConfig.plugins.fileAttachments === true) await player.extractors.register(AttachmentExtractor, {});
   if (clientConfig.plugins.appleMusic === true) await player.extractors.register(AppleMusicExtractor, {});
