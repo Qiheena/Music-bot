@@ -71,6 +71,7 @@ const client = new Client({
 const player = new Player(client, {
   skipFFmpeg: false,
   useLegacyFFmpeg: false,
+  inlineVolume: true,
   ytdlOptions: {
     highWaterMark: 1 << 25,
     filter: 'audioonly',
