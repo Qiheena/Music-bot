@@ -1,6 +1,9 @@
 // Importing from packages
 const { existsSync } = require('fs');
-require('dotenv').config({ path: existsSync('.env') ? '.env' : '.env.example' });
+require('dotenv').config({ 
+  path: existsSync('.env') ? '.env' : '.env.example',
+  override: true
+});
 
 // Force use of @distube/ytdl-core for more stable YouTube streaming
 process.env.DP_FORCE_YTDL_MOD = '@distube/ytdl-core';
