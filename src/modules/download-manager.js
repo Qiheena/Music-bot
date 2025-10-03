@@ -141,9 +141,7 @@ class DownloadManager {
       const urlLower = url.toLowerCase();
       
       if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
-        const videoInfo = await playdl.video_info(url);
-        const videoDetails = videoInfo.video_details;
-        stream = await playdl.stream(videoDetails.url);
+        stream = await playdl.stream(url);
       } else if (urlLower.includes('soundcloud.com')) {
         stream = await playdl.stream(url);
       } else {
@@ -308,7 +306,10 @@ class DownloadManager {
     
     try {
       const stream = fs.createReadStream(filePath);
-      return createAudioResource(stream);
+      return createAudioResource(stream, {
+        inlineVolume: true,
+        inputType: 0
+      });
     } catch (err) {
       logger.syserr(`Failed to create audio resource from cache: ${err.message}`);
       return null;
