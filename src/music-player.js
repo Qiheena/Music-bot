@@ -5,10 +5,11 @@ const {
 const { EmbedBuilder, escapeMarkdown } = require('discord.js');
 const { getGuildSettings } = require('./modules/db');
 const { MS_IN_ONE_SECOND, EMBED_DESCRIPTION_MAX_LENGTH } = require('./constants');
+const downloadManager = require('./modules/download-manager');
 
 module.exports = (player) => {
   // this event is emitted whenever discord-player starts to play a track
-  player.events.on('playerStart', (queue, track) => {
+  player.events.on('playerStart', async (queue, track) => {
     queue.metadata.channel.send({ embeds: [
       new EmbedBuilder({
         color: colorResolver(),
@@ -20,6 +21,8 @@ module.exports = (player) => {
         }` }
       }).setTimestamp(queue.metadata.timestamp)
     ] });
+
+    await downloadManager.predownloadNextTrack(queue);
   });
 
   player.events.on('error', (queue, error) => {
@@ -38,7 +41,7 @@ module.exports = (player) => {
     logger.printErr(err);
   });
 
-  player.events.on('audioTrackAdd', (queue, track) => {
+  player.events.on('audioTrackAdd', async (queue, track) => {
     // Emitted when the player adds a single song to its queue
     queue.metadata.channel.send({ embeds: [
       {
@@ -47,9 +50,14 @@ module.exports = (player) => {
         description: `[${ escapeMarkdown(track.title) }](${ track.url })`
       }
     ] });
+
+    if (!queue.currentTrack && queue.tracks.data.length === 1) {
+      logger.info(`Pre-downloading first track in queue: ${track.title}`);
+      await downloadManager.ensureDownloaded(track);
+    }
   });
 
-  player.events.on('audioTracksAdd', (queue, tracks) => {
+  player.events.on('audioTracksAdd', async (queue, tracks) => {
     // Emitted when the player adds multiple songs to its queue
     queue.metadata.channel.send({ embeds: [
       {
@@ -58,6 +66,12 @@ module.exports = (player) => {
         description: `**${ tracks.length }** Tracks\nFirst entry: [${ escapeMarkdown(tracks[1].title) }](${ tracks[1].url })`
       }
     ] });
+
+    if (!queue.currentTrack && queue.tracks.data.length > 0) {
+      const firstTrack = queue.tracks.data[0];
+      logger.info(`Pre-downloading first track from playlist: ${firstTrack.title}`);
+      await downloadManager.ensureDownloaded(firstTrack);
+    }
   });
 
   player.events.on('audioTrackRemove', (queue, track) => {

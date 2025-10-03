@@ -78,6 +78,38 @@ const player = new Player(client, {
   // CRITICAL FIX: Enable inline volume to fix 120ms bug
   inlineVolume: true
 });
+
+const downloadManager = require('./modules/download-manager');
+const fs = require('fs');
+const { createAudioResource } = require('@discordjs/voice');
+
+player.events.on('playerStart', async (queue, track) => {
+  const cachedResource = downloadManager.createAudioResourceFromCache(track);
+  if (cachedResource) {
+    logger.info(`Playing from cache: ${track.title}`);
+  }
+});
+
+player.events.on('beforeCreateStream', async (track, source, _queue) => {
+  let cachedFilePath = downloadManager.getCachedFilePath(track);
+  
+  if (cachedFilePath && fs.existsSync(cachedFilePath)) {
+    logger.info(`Using cached file for playback: ${track.title}`);
+    return fs.createReadStream(cachedFilePath);
+  }
+  
+  logger.info(`Downloading before playback: ${track.title}`);
+  const downloadResult = await downloadManager.ensureDownloaded(track);
+  
+  if (downloadResult.success) {
+    logger.info(`Successfully downloaded and playing from cache: ${track.title}`);
+    return fs.createReadStream(downloadResult.filePath);
+  }
+  
+  logger.syserr(`Download failed for ${track.title}, falling back to streaming: ${downloadResult.error}`);
+  return null;
+});
+
 require('./music-player')(player);
 
 // Destructuring from env
