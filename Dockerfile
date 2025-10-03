@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install 'ffmpeg' -y --no-install-recommends \
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 # where available (npm@5+)
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install 
 
 # Bundle app source
 COPY . ./
