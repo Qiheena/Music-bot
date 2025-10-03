@@ -141,7 +141,9 @@ class DownloadManager {
       const urlLower = url.toLowerCase();
       
       if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
-        stream = await playdl.stream(url);
+        const videoInfo = await playdl.video_info(url);
+        const videoDetails = videoInfo.video_details;
+        stream = await playdl.stream(videoDetails.url);
       } else if (urlLower.includes('soundcloud.com')) {
         stream = await playdl.stream(url);
       } else {
