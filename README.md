@@ -17,6 +17,8 @@
 <p align="center">
   <a href="https://soundcloud.com/">SoundCloud</a>
   •
+  <a href="https://www.deezer.com/">Deezer</a>
+  •
   <a href="https://music.apple.com/">Apple Music</a>
   •
   <a href="https://vimeo.com/">Vimeo</a>

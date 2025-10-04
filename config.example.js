@@ -17,10 +17,12 @@ const config = {
 
   plugins: {
     fileAttachments: true,
-    soundCloud: false,
+    soundCloud: true,
     appleMusic: true,
     vimeo: true,
     reverbNation: true,
+    playDL: true,
+    deezer: true,
   },
 
   presence: {
