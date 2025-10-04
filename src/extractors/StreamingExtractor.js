@@ -227,22 +227,37 @@ class StreamingExtractor extends BaseExtractor {
       logger.info('[StreamingExtractor] Starting direct stream for:', { url, source });
       
       if (source === 'soundcloud') {
-        logger.debug('[StreamingExtractor] Using SoundCloud direct streaming');
-        const stream = await play.stream(url, { discordPlayerCompatibility: true });
-        return {
-          stream: stream.stream,
-          type: stream.type
-        };
-      } else {
-        logger.debug('[StreamingExtractor] Using YouTube direct streaming');
-        const stream = await play.stream(url, { discordPlayerCompatibility: true });
-        return {
-          stream: stream.stream,
-          type: stream.type
-        };
+        logger.debug('[StreamingExtractor] Using SoundCloud direct streaming via play-dl');
+        try {
+          const stream = await play.stream(url, { discordPlayerCompatibility: true });
+          return {
+            stream: stream.stream,
+            type: stream.type
+          };
+        } catch (scError) {
+          logger.syserr('[StreamingExtractor] SoundCloud play-dl failed, trying yt-dlp:', scError.message);
+        }
       }
+      
+      logger.debug('[StreamingExtractor] Using yt-dlp for stream URL extraction');
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const execAsync = promisify(exec);
+      
+      const { stdout } = await execAsync(`yt-dlp -f bestaudio --get-url "${url}"`);
+      const streamUrl = stdout.trim();
+      
+      if (!streamUrl || !streamUrl.startsWith('http')) {
+        throw new Error('yt-dlp failed to extract stream URL');
+      }
+      
+      logger.debug('[StreamingExtractor] yt-dlp extracted stream URL successfully');
+      return {
+        stream: streamUrl,
+        type: 'arbitrary'
+      };
     } catch (error) {
-      logger.syserr('[StreamingExtractor] Direct streaming failed:', error);
+      logger.syserr('[StreamingExtractor] Direct streaming failed:', error.message);
       throw error;
     }
   }
