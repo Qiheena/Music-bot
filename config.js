@@ -53,12 +53,12 @@ const config = {
   // Plugins/Music source extractors
   plugins: {
     fileAttachments: true,
-    soundCloud: true,
+    soundCloud: false,
     appleMusic: true,
     vimeo: true,
     reverbNation: true,
     playDL: true,
-    deezer: true,
+    deezer: false,
   },
 
   // Bot activity

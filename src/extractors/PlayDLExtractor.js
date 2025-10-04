@@ -137,7 +137,21 @@ class PlayDLExtractor extends BaseExtractor {
     try {
       logger.debug('[PlayDLExtractor] Attempting to stream:', info.url);
       
-      const streamData = await play.stream(info.url, {
+      let urlToStream = info.url;
+      
+      if (!info.url.includes('youtube.com') && !info.url.includes('youtu.be')) {
+        logger.debug('[PlayDLExtractor] Non-YouTube URL detected, searching YouTube for:', info.title);
+        const searched = await play.search(info.title, { limit: 1, source: { youtube: 'video' } });
+        
+        if (!searched || searched.length === 0) {
+          throw new Error('Could not find YouTube alternative for this track');
+        }
+        
+        urlToStream = searched[0].url;
+        logger.debug('[PlayDLExtractor] Found YouTube alternative:', urlToStream);
+      }
+      
+      const streamData = await play.stream(urlToStream, {
         quality: 1,
         discordPlayerCompatibility: true
       });
@@ -146,7 +160,7 @@ class PlayDLExtractor extends BaseExtractor {
         throw new Error('Failed to get stream data from play-dl');
       }
       
-      logger.debug('[PlayDLExtractor] Stream created successfully for:', info.title || info.url);
+      logger.debug('[PlayDLExtractor] Stream created successfully for:', info.title || urlToStream);
       return this.createStream(streamData.stream, { type: streamData.type });
     } 
     catch (error) {

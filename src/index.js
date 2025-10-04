@@ -292,8 +292,13 @@ if (modeArg && modeArg.endsWith('test')) process.exit(0);
     return true;
   });
   
-  await player.extractors.loadMulti(extractorsToLoad);
-  logger.info('Default extractors loaded (SoundCloud, Apple Music, Vimeo, Reverbnation, Attachments)');
+  if (extractorsToLoad.length > 0) {
+    await player.extractors.loadMulti(extractorsToLoad);
+    const loadedNames = extractorsToLoad.map(e => e.name || 'Unknown').join(', ');
+    logger.info(`Default extractors loaded: ${loadedNames}`);
+  } else {
+    logger.info('No default extractors to load (all disabled in config)');
+  }
   
   // Register Deezer extractor if enabled
   if (clientConfig.plugins.deezer === true) {
