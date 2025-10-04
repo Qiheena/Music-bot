@@ -58,7 +58,7 @@ const config = {
     vimeo: true,
     reverbNation: true,
     playDL: true,
-    deezer: false,
+    deezer: true,
   },
 
   // Bot activity
