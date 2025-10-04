@@ -57,7 +57,7 @@ const config = {
     appleMusic: true,
     vimeo: true,
     reverbNation: true,
-    playDL: false,
+    playDL: true,
     deezer: true,
   },
 
