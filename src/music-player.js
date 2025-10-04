@@ -55,7 +55,7 @@ module.exports = (player) => {
       {
         color: colorResolver(),
         title: 'Multiple Tracks Enqueued',
-        description: `**${ tracks.length }** Tracks\nFirst entry: [${ escapeMarkdown(tracks[1].title) }](${ tracks[1].url })`
+        description: `**${ tracks.length }** Tracks\nFirst entry: [${ escapeMarkdown(tracks[0].title) }](${ tracks[0].url })`
       }
     ] });
   });
