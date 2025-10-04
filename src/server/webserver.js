@@ -1,5 +1,5 @@
 const express = require("express");
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const app = express();
 
 app.get("/", (req, res) => res.send("Bot is running!"));

@@ -15,7 +15,7 @@ const { DEBUG_ENABLED } = process.env;
 // Import from packages
 const path = require('path');
 const chalk = require('chalk');
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const { Collection } = require('discord.js');
 
 /**

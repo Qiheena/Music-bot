@@ -3,7 +3,7 @@ require('dotenv').config();
 
 // Importing from packages
 const chalk = require('chalk');
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 let express;
 
 // Try to import express

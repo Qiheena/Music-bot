@@ -1,6 +1,6 @@
 const { BaseExtractor } = require('discord-player');
 const play = require('play-dl');
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 
 class PlayDLExtractor extends BaseExtractor {
   static identifier = 'com.playernix.playdl';

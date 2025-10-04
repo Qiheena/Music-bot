@@ -1,4 +1,4 @@
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const { AUTOCOMPLETE_MAX_DATA_OPTIONS } = require('../../constants');
 const { getRuntime } = require('../../util');
 const chalk = require('chalk');
