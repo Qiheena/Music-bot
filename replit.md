@@ -136,7 +136,14 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## October 4, 2025 (Latest)
+## October 4, 2025 (Latest - Bug Fixes)
+- **PlayDL Extractor**: Enabled PlayDL extractor in config.js for better YouTube fallback support when SoundCloud extractor fails
+- **Array Index Fix**: Fixed critical bug in music-player.js where `tracks[1]` was used instead of `tracks[0]` for first track in multiple tracks enqueue event
+- **Error Handling**: Improved playerError event handler to send user-friendly error messages to Discord channel when stream extraction fails, instead of only logging to console
+- **Validation Fix**: Added TEST_SERVER_GUILD_ID validation in commands handler to prevent Invalid Form Body errors when environment variable contains invalid shell syntax
+- **User Experience**: Users now receive clear error messages when songs fail to play due to stream extraction issues
+
+## October 4, 2025 (Earlier)
 - **Major Upgrade**: Upgraded discord-player from v6.7.1 to v7.1.0 to fix SoundCloud streaming issues
 - **Extractor Upgrade**: Upgraded @discord-player/extractor from v4.5.1 to v7.1.0 with DefaultExtractors support
 - **Deezer Integration**: Added discord-player-deezer package for Deezer music source support
