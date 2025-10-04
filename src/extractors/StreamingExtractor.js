@@ -107,14 +107,14 @@ class StreamingExtractor extends BaseExtractor {
       logger.debug('[StreamingExtractor] SoundCloud track created for direct streaming:', scInfo.name);
       return { playlist: null, tracks: [track] };
     } catch (error) {
-      logger.syserr('[StreamingExtractor] Failed to handle SoundCloud URL:', error.message);
+      logger.syserr('[StreamingExtractor] Failed to handle SoundCloud URL, trying YouTube fallback:', error.message);
       
       try {
-        logger.debug('[StreamingExtractor] Trying SoundCloud fallback: searching YouTube');
-        const searchTerm = url.split('/').pop().replace(/-/g, ' ');
+        const searchTerm = `${error.message?.includes('title') ? url.split('/').pop().replace(/-/g, ' ') : 'soundcloud ' + url.split('/').pop().replace(/-/g, ' ')}`;
+        logger.debug('[StreamingExtractor] SoundCloud→YouTube fallback search:', searchTerm);
         return await this.handleSearch(searchTerm, context);
       } catch (fallbackError) {
-        logger.syserr('[StreamingExtractor] SoundCloud fallback also failed:', fallbackError.message);
+        logger.syserr('[StreamingExtractor] SoundCloud→YouTube fallback also failed:', fallbackError.message);
         return { playlist: null, tracks: [] };
       }
     }

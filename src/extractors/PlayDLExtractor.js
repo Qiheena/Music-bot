@@ -127,16 +127,8 @@ class PlayDLExtractor extends BaseExtractor {
       logger.debug('[PlayDLExtractor] SoundCloud track created for direct streaming:', scInfo.name);
       return { playlist: null, tracks: [track] };
     } catch (error) {
-      logger.syserr('[PlayDLExtractor] Failed to handle SoundCloud URL, falling back to YouTube search:', error.message);
-      
-      try {
-        const searchTerm = url.split('/').pop().replace(/-/g, ' ');
-        logger.debug('[PlayDLExtractor] SoundCloud fallback: searching YouTube for:', searchTerm);
-        return await this.handleSearch(searchTerm, context, true, guildId);
-      } catch (fallbackError) {
-        logger.syserr('[PlayDLExtractor] SoundCloud YouTube fallback also failed:', fallbackError.message);
-        return { playlist: null, tracks: [] };
-      }
+      logger.syserr('[PlayDLExtractor] Failed to get SoundCloud info:', error.message);
+      return { playlist: null, tracks: [] };
     }
   }
 

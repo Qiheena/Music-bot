@@ -88,10 +88,13 @@
 
 <br />
 
-> Note: YouTube support has been re-enabled via the PlayDL extractor with intelligent search ranking for accurate song results. Spotify is not supported due to Terms of Service restrictions. For the best experience, use YouTube search by song name or direct links from supported platforms.
+> **v1.4.0 Update:** Now features triple-redundancy for YouTube (ytdl-core, play-dl, yt-dlp) with direct streaming fallback! SoundCloud uses native direct streaming for best performance. The bot automatically tries multiple methods to ensure your music always plays.
 
 <h2 id="features">🤩 Features (non-exhaustive)</h2>
 
+- **🎵 Multiple Playback Methods:** Triple-redundancy for YouTube (ytdl-core, play-dl, yt-dlp) + direct streaming fallback
+- **📡 Native SoundCloud Streaming:** Direct streaming support for best SoundCloud performance
+- **🔄 Hybrid Architecture:** Smart fallback system ensures music always plays
 - Easy installation
 - Settings with persistency
 - 60+ total audio filters
