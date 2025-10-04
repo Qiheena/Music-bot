@@ -1,7 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const PQueue = require('p-queue').default;
-const ytdl = require('ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 const play = require('play-dl');
 const logger = require('@QIHeena/logger');
 const { createWriteStream } = require('fs');

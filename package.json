@@ -34,6 +34,7 @@
   "dependencies": {
     "@discord-player/extractor": "^7.1.0",
     "@discordjs/rest": "^2.4.0",
+    "@distube/ytdl-core": "^4.16.12",
     "@QIHeena/logger": "file:./vendor/@QIHeena/logger",
     "chalk": "^4.1.2",
     "common-tags": "^1.8.2",
@@ -45,8 +46,7 @@
     "lokijs": "^1.5.12",
     "p-queue": "^6.6.2",
     "play-dl": "^1.9.7",
-    "youtube-sr": "^4.3.12",
-    "ytdl-core": "^4.11.5"
+    "youtube-sr": "^4.3.12"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
