@@ -1,6 +1,10 @@
 const { BaseExtractor, Track } = require('discord-player');
 const play = require('play-dl');
 const logger = require('@QIHeena/logger');
+const ytdl = require('@distube/ytdl-core');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
 class PlayDLExtractor extends BaseExtractor {
   static identifier = 'com.playernix.playdl';
@@ -226,6 +230,75 @@ class PlayDLExtractor extends BaseExtractor {
     }
   }
 
+  async downloadAndCache(url, title) {
+    const cacheDir = '/tmp/music_cache';
+    const hash = crypto.createHash('md5').update(url).digest('hex');
+    const fileName = `${hash}.opus`;
+    const filePath = path.join(cacheDir, fileName);
+    
+    if (fs.existsSync(filePath)) {
+      logger.debug(`[PlayDLExtractor] ✓ Cache hit for:`, title);
+      return filePath;
+    }
+    
+    logger.debug(`[PlayDLExtractor] Downloading from YouTube:`, title);
+    
+    return new Promise((resolve, reject) => {
+      const stream = ytdl(url, {
+        filter: 'audioonly',
+        quality: 'highestaudio',
+        highWaterMark: 1 << 25
+      });
+      
+      const writeStream = fs.createWriteStream(filePath);
+      
+      stream.pipe(writeStream);
+      
+      stream.on('error', (err) => {
+        logger.debug(`[PlayDLExtractor] ✗ Download failed:`, err.message);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        reject(err);
+      });
+      
+      writeStream.on('finish', () => {
+        logger.debug(`[PlayDLExtractor] ✓ Download complete:`, title);
+        this.cleanupOldCache(cacheDir);
+        resolve(filePath);
+      });
+      
+      writeStream.on('error', (err) => {
+        logger.debug(`[PlayDLExtractor] ✗ Write failed:`, err.message);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        reject(err);
+      });
+    });
+  }
+  
+  cleanupOldCache(cacheDir) {
+    try {
+      const files = fs.readdirSync(cacheDir);
+      if (files.length > 50) {
+        const fileStats = files.map(file => ({
+          file,
+          path: path.join(cacheDir, file),
+          time: fs.statSync(path.join(cacheDir, file)).mtime.getTime()
+        })).sort((a, b) => a.time - b.time);
+        
+        const filesToDelete = fileStats.slice(0, 20);
+        filesToDelete.forEach(({ path }) => {
+          fs.unlinkSync(path);
+          logger.debug(`[PlayDLExtractor] Cleaned up cache file:`, path);
+        });
+      }
+    } catch (err) {
+      logger.debug(`[PlayDLExtractor] Cache cleanup error:`, err.message);
+    }
+  }
+  
   async streamFromPlatform(url, platform) {
     const timeout = 15000;
     let timeoutHandle;
@@ -261,58 +334,51 @@ class PlayDLExtractor extends BaseExtractor {
       logger.debug('[PlayDLExtractor] Attempting to stream:', info.url);
       logger.debug('[PlayDLExtractor] Track title:', info.title);
       
+      let youtubeUrl = null;
+      
       if (info.url.includes('youtube.com') || info.url.includes('youtu.be')) {
-        logger.debug('[PlayDLExtractor] Direct YouTube URL detected, normalizing and streaming...');
-        try {
-          const videoInfo = await play.video_basic_info(info.url);
-          const normalizedUrl = videoInfo.video_details.url;
-          logger.debug('[PlayDLExtractor] YouTube URL normalized:', normalizedUrl);
-          const streamData = await this.streamFromPlatform(normalizedUrl, 'YouTube');
-          return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
-        } catch (err) {
-          logger.debug('[PlayDLExtractor] YouTube URL normalization/streaming failed, will try fallbacks:', err.message);
-        }
-      }
-      
-      let searchQuery = info.raw?.searchQuery || info.title || info.author || '';
-      
-      if (!searchQuery || !searchQuery.trim()) {
-        logger.syserr('[PlayDLExtractor] Empty search query! Attempting to extract from all metadata...');
-        searchQuery = info.description || '';
+        youtubeUrl = info.url;
+      } else if (info.raw?.youtubeUrl) {
+        youtubeUrl = info.raw.youtubeUrl;
+      } else {
+        let searchQuery = info.raw?.searchQuery || info.title || info.author || '';
         
         if (!searchQuery || !searchQuery.trim()) {
-          throw new Error('Cannot search with empty query - no title, author, or description available');
+          logger.syserr('[PlayDLExtractor] Empty search query! Attempting to extract from all metadata...');
+          searchQuery = info.description || '';
+          
+          if (!searchQuery || !searchQuery.trim()) {
+            throw new Error('Cannot search with empty query - no title, author, or description available');
+          }
         }
-      }
-      
-      searchQuery = searchQuery.trim();
-      logger.debug('[PlayDLExtractor] Search query for streaming:', searchQuery);
-      
-      if (info.raw?.youtubeUrl) {
-        logger.debug('[PlayDLExtractor] Using stored YouTube URL:', info.raw.youtubeUrl);
+        
+        searchQuery = searchQuery.trim();
+        logger.debug('[PlayDLExtractor] Searching YouTube for:', searchQuery);
+        
         try {
-          const videoInfo = await play.video_basic_info(info.raw.youtubeUrl);
-          const normalizedUrl = videoInfo.video_details.url;
-          const streamData = await this.streamFromPlatform(normalizedUrl, 'YouTube');
-          return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
+          const searched = await play.search(searchQuery, { limit: 1, source: { youtube: 'video' } });
+          if (searched && searched.length > 0) {
+            logger.debug('[PlayDLExtractor] YouTube found:', searched[0].title);
+            youtubeUrl = searched[0].url;
+          }
         } catch (err) {
-          logger.debug('[PlayDLExtractor] Stored YouTube URL failed, searching...', err.message);
+          logger.debug('[PlayDLExtractor] YouTube search failed:', err.message);
         }
       }
       
-      logger.debug('[PlayDLExtractor] Searching YouTube for:', searchQuery);
-      try {
-        const searched = await play.search(searchQuery, { limit: 1, source: { youtube: 'video' } });
-        if (searched && searched.length > 0) {
-          logger.debug('[PlayDLExtractor] YouTube found:', searched[0].title);
-          const videoInfo = await play.video_basic_info(searched[0].url);
-          const normalizedUrl = videoInfo.video_details.url;
-          const streamData = await this.streamFromPlatform(normalizedUrl, 'YouTube');
-          return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
+      if (youtubeUrl) {
+        logger.debug('[PlayDLExtractor] YouTube URL:', youtubeUrl);
+        logger.debug('[PlayDLExtractor] Using download-first approach...');
+        
+        try {
+          const cachedFile = await this.downloadAndCache(youtubeUrl, info.title);
+          logger.debug('[PlayDLExtractor] ✓ Streaming from cached file:', cachedFile);
+          
+          const fileStream = fs.createReadStream(cachedFile);
+          return this.createStream(fileStream, { type: 'opus' });
+        } catch (err) {
+          logger.debug('[PlayDLExtractor] Download-first approach failed:', err.message);
         }
-        logger.debug('[PlayDLExtractor] No YouTube results found');
-      } catch (err) {
-        logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
       }
       
       if (info.raw?.soundcloudFallback) {
@@ -327,6 +393,11 @@ class PlayDLExtractor extends BaseExtractor {
       
       logger.debug('[PlayDLExtractor] All YouTube attempts failed, searching SoundCloud as last resort...');
       try {
+        const searchQuery = (info.raw?.searchQuery || info.title || info.author || '').trim();
+        if (!searchQuery) {
+          throw new Error('No search query available for SoundCloud');
+        }
+        
         const searched = await play.search(searchQuery, { limit: 1, source: { soundcloud: 'tracks' } });
         if (searched && searched.length > 0) {
           logger.debug('[PlayDLExtractor] SoundCloud found:', searched[0].title);
