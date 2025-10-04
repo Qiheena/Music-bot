@@ -2,7 +2,7 @@
 
 ## Require the package
 ```js
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 ```
 
 ## Example Usage

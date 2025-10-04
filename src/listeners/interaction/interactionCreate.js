@@ -1,4 +1,4 @@
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const chalk = require('chalk');
 const { InteractionType } = require('discord.js');
 const { checkCommandCanExecute,
