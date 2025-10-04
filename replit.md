@@ -136,7 +136,15 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## October 4, 2025 (Latest - Bug Fixes)
+## October 4, 2025 (Latest - YouTube Metadata & Search Improvements)
+- **YouTube Primary Source**: Changed PlayDL extractor to be the primary metadata source for all song name searches, ensuring more accurate song results
+- **Fallback Query Fix**: Fixed critical bug where fallback YouTube search received empty queries, now properly extracts track title from context when query is not a string
+- **Intelligent Search Ranking**: Added relevance scoring system that prioritizes official audio, verified channels, and Topic channels for more accurate search results
+- **Multi-Platform Filter**: Enhanced validate() method to skip SoundCloud, Spotify, Apple Music, and Vimeo URLs, allowing their respective extractors to handle them
+- **User Interface**: Updated play command description to reflect "Search YouTube, provide a link, or upload an audio file"
+- **Search Accuracy**: Users searching by song name now get the most accurate, official versions from YouTube automatically
+
+## October 4, 2025 (Earlier - Bug Fixes)
 - **PlayDL Extractor**: Enabled PlayDL extractor in config.js for better YouTube fallback support when SoundCloud extractor fails
 - **Array Index Fix**: Fixed critical bug in music-player.js where `tracks[1]` was used instead of `tracks[0]` for first track in multiple tracks enqueue event
 - **Enhanced Error Handling**: Completely revamped playerError event handler with:
