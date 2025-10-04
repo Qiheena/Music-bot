@@ -23,7 +23,7 @@ const {
 } = require('fs');
 const moment = require('moment');
 const path = require('path');
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const colors = require('./config/colors.json');
 
 // Import our constants

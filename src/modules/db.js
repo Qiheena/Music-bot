@@ -3,7 +3,7 @@
 const loki = require('lokijs');
 const fsAdapter = new loki.LokiFsAdapter();
 const pkg = require('../../package.json');
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const chalk = require('chalk');
 const { clientConfig } = require('../util');
 

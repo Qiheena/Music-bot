@@ -40,7 +40,7 @@ const {
 const emojis = require('../config/emojis.json');
 
 // Packages
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const chalk = require('chalk');
 const { hasChannelPerms, resolvePermissionArray } = require('./permissions');
 const {

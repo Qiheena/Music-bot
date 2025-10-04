@@ -4,7 +4,7 @@ const util = require('util');
 const {
   EMBED_FIELD_VALUE_MAX_LENGTH, ACCEPT_EVAL_CODE_EXECUTION, ZERO_WIDTH_SPACE_CHAR_CODE
 } = require('../../../constants');
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const { ComponentCommand } = require('../../../classes/Commands');
 
 const clean = (text) => {

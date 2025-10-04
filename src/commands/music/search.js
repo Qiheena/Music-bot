@@ -8,7 +8,7 @@ const {
 } = require('../../util');
 const { queueTrackCb, requireSessionConditions } = require('../../modules/music');
 const { MS_IN_ONE_MINUTE } = require('../../constants');
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 
 module.exports = new ChatInputCommand({
   global: true,

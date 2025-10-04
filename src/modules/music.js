@@ -11,7 +11,7 @@ const {
 } = require('../util');
 const { stripIndents } = require('common-tags');
 const { hasChannelPerms } = require('../handlers/permissions');
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 
 const ALLOWED_CONTENT_TYPE = 'audio/mpeg';
 

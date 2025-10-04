@@ -1,4 +1,4 @@
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const { generateCommandInfoEmbed, generateCommandOverviewEmbed } = require('../../handlers/commands');
 const { HELP_COMMAND_SELECT_MENU, HELP_SELECT_MENU_SEE_MORE_OPTIONS } = require('../../constants');
 const { ComponentCommand } = require('../../classes/Commands');

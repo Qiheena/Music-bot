@@ -1,7 +1,7 @@
 // Importing from packages
 const { existsSync } = require('fs');
 require('dotenv').config({ path: existsSync('.env') ? '.env' : '.env.example' });
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const chalk = require('chalk');
 const {
   Client, GatewayIntentBits, ActivityType, PresenceUpdateStatus

@@ -119,7 +119,7 @@ Preferred communication style: Simple, everyday language.
 - **dotenv**: Environment variable management
 - **chalk v4**: Terminal output coloring
 - **common-tags**: Template literal formatting
-- **@mirasaki/logger**: Custom logging utility (vendor package)
+- **@QIHeena/logger**: Custom logging utility (vendor package)
 
 ## Development Tools
 - **semantic-release**: Automated versioning and changelog generation

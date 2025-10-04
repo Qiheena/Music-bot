@@ -1,4 +1,4 @@
-const logger = require('@mirasaki/logger');
+const logger = require('@QIHeena/logger');
 const {
   colorResolver, msToHumanReadableTime, clientConfig
 } = require('./util');
