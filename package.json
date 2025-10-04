@@ -46,7 +46,8 @@
     "lokijs": "^1.5.12",
     "p-queue": "^6.6.2",
     "play-dl": "^1.9.7",
-    "youtube-sr": "^4.3.12"
+    "youtube-sr": "^4.3.12",
+    "yt-dlp-wrap": "^2.3.12"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
