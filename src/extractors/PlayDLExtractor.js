@@ -12,8 +12,10 @@ class PlayDLExtractor extends BaseExtractor {
   async validate(query, type) {
     if (typeof query !== 'string') return false;
     
-    // Skip SoundCloud URLs - let the official SoundCloudExtractor handle them
-    if (query.includes('soundcloud.com')) {
+    if (query.includes('soundcloud.com') || 
+        query.includes('spotify.com') ||
+        query.includes('apple.com') ||
+        query.includes('vimeo.com')) {
       return false;
     }
     
@@ -22,7 +24,8 @@ class PlayDLExtractor extends BaseExtractor {
     }
     
     if (type === this.context.QueryType.AUTO_SEARCH || 
-        type === this.context.QueryType.SEARCH) {
+        type === this.context.QueryType.SEARCH ||
+        type === this.context.QueryType.YOUTUBE_SEARCH) {
       return true;
     }
     
@@ -31,12 +34,23 @@ class PlayDLExtractor extends BaseExtractor {
 
   async handle(query, context) {
     try {
-      logger.debug('[PlayDLExtractor] Handling query:', query);
+      let searchQuery = query;
+      
+      if (typeof query !== 'string' || !query) {
+        logger.debug('[PlayDLExtractor] Query is not a string, extracting from context/track');
+        searchQuery = context?.track?.title || context?.title || '';
+        if (!searchQuery) {
+          logger.syserr('[PlayDLExtractor] Could not extract query from context');
+          return this.createResponse();
+        }
+      }
+      
+      logger.debug('[PlayDLExtractor] Handling query:', searchQuery);
       let searchResult;
       
-      if (query.includes('youtube.com') || query.includes('youtu.be')) {
+      if (searchQuery.includes('youtube.com') || searchQuery.includes('youtu.be')) {
         logger.debug('[PlayDLExtractor] YouTube URL detected, fetching info...');
-        const info = await play.video_basic_info(query);
+        const info = await play.video_basic_info(searchQuery);
         searchResult = [{
           url: info.video_details.url,
           title: info.video_details.title,
@@ -49,24 +63,39 @@ class PlayDLExtractor extends BaseExtractor {
         logger.debug('[PlayDLExtractor] YouTube info fetched:', info.video_details.title);
       } 
       else {
-        logger.debug('[PlayDLExtractor] Searching YouTube for:', query);
-        const searched = await play.search(query, { limit: 10, source: { youtube: 'video' } });
+        logger.debug('[PlayDLExtractor] Searching YouTube for:', searchQuery);
+        const searched = await play.search(searchQuery, { limit: 10, source: { youtube: 'video' } });
         
         if (!searched || searched.length === 0) {
-          logger.syserr('[PlayDLExtractor] No search results found for:', query);
+          logger.syserr('[PlayDLExtractor] No search results found for:', searchQuery);
           return this.createResponse();
         }
         
-        searchResult = searched.map(video => ({
-          url: video.url,
-          title: video.title,
-          duration: video.durationInSec * 1000,
-          thumbnail: video.thumbnails[0]?.url,
-          author: video.channel ? video.channel.name : 'Unknown',
-          views: video.views,
-          source: 'youtube'
-        }));
-        logger.debug('[PlayDLExtractor] Found', searchResult.length, 'results');
+        searchResult = searched.map(video => {
+          const titleLower = (video.title || '').toLowerCase();
+          const isOfficialAudio = titleLower.includes('official audio') || titleLower.includes('official lyric');
+          const isOfficialVideo = titleLower.includes('official video') || titleLower.includes('official music video');
+          const isTopic = video.channel && video.channel.name && video.channel.name.includes('- Topic');
+          
+          let relevanceScore = 0;
+          if (isTopic) relevanceScore += 100;
+          if (isOfficialAudio) relevanceScore += 80;
+          if (isOfficialVideo) relevanceScore += 60;
+          if (video.channel && video.channel.verified) relevanceScore += 40;
+          
+          return {
+            url: video.url,
+            title: video.title,
+            duration: video.durationInSec * 1000,
+            thumbnail: video.thumbnails[0]?.url,
+            author: video.channel ? video.channel.name : 'Unknown',
+            views: video.views,
+            source: 'youtube',
+            relevanceScore
+          };
+        }).sort((a, b) => b.relevanceScore - a.relevanceScore);
+        
+        logger.debug('[PlayDLExtractor] Found', searchResult.length, 'results, top result:', searchResult[0]?.title);
       }
 
       if (!searchResult || searchResult.length === 0) {
