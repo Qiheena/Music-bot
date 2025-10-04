@@ -20,8 +20,8 @@ RUN npm ci --omit=dev --ignore-scripts && \
 # Bundle app source
 COPY . ./
 
-# Create cache directory with proper permissions
-RUN mkdir -p /tmp/music_cache && chmod 755 /tmp/music_cache
+# Create download directory for audio files with proper permissions
+RUN mkdir -p /tmp/audio && chmod 755 /tmp/audio
 
 # Expose port
 EXPOSE 5000
