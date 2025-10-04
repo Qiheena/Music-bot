@@ -152,7 +152,7 @@ class PlayDLExtractor extends BaseExtractor {
       }
       
       const streamData = await play.stream(urlToStream, {
-        quality: 1,
+        quality: 2,
         discordPlayerCompatibility: true
       });
       
