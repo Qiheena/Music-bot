@@ -270,8 +270,7 @@ class PlayDLExtractor extends BaseExtractor {
           const streamData = await this.streamFromPlatform(normalizedUrl, 'YouTube');
           return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
         } catch (err) {
-          logger.syserr('[PlayDLExtractor] Failed to normalize/stream YouTube URL:', err.message);
-          throw err;
+          logger.debug('[PlayDLExtractor] YouTube URL normalization/streaming failed, will try fallbacks:', err.message);
         }
       }
       
