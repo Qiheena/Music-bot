@@ -112,7 +112,8 @@ Preferred communication style: Simple, everyday language.
 - **Routes**: 
   - `/` - Health check endpoint
   - `/api/commands` - Command metadata endpoint
-- **Port**: 3000 (default) or configurable via PORT environment variable
+- **Port**: 5000 (default) or configurable via PORT environment variable
+- **Host**: Binds to 0.0.0.0 for Replit compatibility
 
 ## Utilities
 - **dotenv**: Environment variable management
@@ -127,6 +128,16 @@ Preferred communication style: Simple, everyday language.
 - **commitizen**: Conventional commit formatting
 
 ## Deployment Options
-- **Docker**: Containerized deployment with docker-compose support
+- **Docker**: Containerized deployment with docker-compose support (uses Node 20-slim)
 - **PM2**: Process manager for production deployments
 - **Native**: Direct Node.js execution
+- **Replit**: Configured for Replit environment with port 5000
+
+# Recent Changes
+
+## October 4, 2025
+- **Bug Fix**: Changed `skipOnNoStream` from `true` to `false` in play command to prevent songs from being skipped immediately when audio stream extraction takes time
+- **Port Update**: Updated default webserver port from 3000 to 5000 for Replit compatibility
+- **Configuration Files**: Added `.env.example` and `config.example.js` files for easier setup
+- **Docker Update**: Updated Dockerfile to use Node 20-slim (matching package.json requirements) and expose port 5000
+- **Replit Compatibility**: Updated webserver to bind to 0.0.0.0 for proper operation in Replit environment
