@@ -109,13 +109,34 @@ class PlayDLExtractor extends BaseExtractor {
   async handleSoundCloud(url, context, guildId) {
     try {
       const scInfo = await play.soundcloud(url);
-      const searchTerm = `${scInfo.name} ${scInfo.user?.name || ''}`.trim();
-      logger.debug('[PlayDLExtractor] SoundCloud metadata extracted, searching YouTube for:', searchTerm);
       
-      return await this.handleSearch(searchTerm, context, true, guildId);
+      const track = this.createTrack({
+        title: scInfo.name,
+        url: scInfo.url,
+        duration: scInfo.durationInMs,
+        thumbnail: scInfo.thumbnail,
+        author: scInfo.user?.name || scInfo.publisher?.[0]?.name || 'Unknown',
+        views: scInfo.playCount || 0,
+        source: 'soundcloud',
+        requestedBy: context.requestedBy,
+        queryType: context.type,
+        guildId,
+        soundcloudUrl: url
+      });
+      
+      logger.debug('[PlayDLExtractor] SoundCloud track created for direct streaming:', scInfo.name);
+      return { playlist: null, tracks: [track] };
     } catch (error) {
-      logger.syserr('[PlayDLExtractor] Failed to handle SoundCloud URL:', error.message);
-      return { playlist: null, tracks: [] };
+      logger.syserr('[PlayDLExtractor] Failed to handle SoundCloud URL, falling back to YouTube search:', error.message);
+      
+      try {
+        const searchTerm = url.split('/').pop().replace(/-/g, ' ');
+        logger.debug('[PlayDLExtractor] SoundCloud fallback: searching YouTube for:', searchTerm);
+        return await this.handleSearch(searchTerm, context, true, guildId);
+      } catch (fallbackError) {
+        logger.syserr('[PlayDLExtractor] SoundCloud YouTube fallback also failed:', fallbackError.message);
+        return { playlist: null, tracks: [] };
+      }
     }
   }
 
@@ -245,17 +266,36 @@ class PlayDLExtractor extends BaseExtractor {
       queryType: data.queryType
     });
     track.extractor = this;
-    track.raw = { youtubeUrl: data.url, guildId: data.guildId };
+    track.raw = { 
+      youtubeUrl: data.url, 
+      soundcloudUrl: data.soundcloudUrl,
+      guildId: data.guildId,
+      source: data.source
+    };
     return track;
   }
 
   async stream(info) {
     try {
-      const url = info.url || info.raw?.youtubeUrl;
+      const source = info.raw?.source || 'youtube';
+      const url = info.url || info.raw?.youtubeUrl || info.raw?.soundcloudUrl;
       const guildId = info.raw?.guildId || 'default';
       
       if (!url) {
         throw new Error('No URL provided for streaming');
+      }
+      
+      if (source === 'soundcloud') {
+        logger.info('[PlayDLExtractor] Using direct SoundCloud streaming for:', url);
+        try {
+          const stream = await play.stream(url, { discordPlayerCompatibility: true });
+          return {
+            stream: stream.stream,
+            type: stream.type
+          };
+        } catch (scError) {
+          logger.syserr('[PlayDLExtractor] SoundCloud streaming failed, trying download fallback:', scError.message);
+        }
       }
       
       const trackId = downloadManager.generateTrackId(url);
@@ -263,16 +303,26 @@ class PlayDLExtractor extends BaseExtractor {
       info.raw.trackId = trackId;
       info.raw.guildId = guildId;
       
-      logger.info('[PlayDLExtractor] Starting download for:', { url, guildId, trackId });
-      const filePath = await downloadManager.getResource(url, guildId);
+      logger.info('[PlayDLExtractor] Starting download for:', { url, guildId, trackId, source });
       
-      logger.debug('[PlayDLExtractor] Download complete, file path:', filePath);
-      return {
-        stream: filePath,
-        type: 'arbitrary'
-      };
+      try {
+        const filePath = await downloadManager.getResource(url, guildId);
+        logger.debug('[PlayDLExtractor] Download complete, file path:', filePath);
+        return {
+          stream: filePath,
+          type: 'arbitrary'
+        };
+      } catch (downloadError) {
+        logger.syserr('[PlayDLExtractor] Download failed, trying direct streaming fallback:', downloadError.message);
+        
+        const stream = await play.stream(url, { discordPlayerCompatibility: true });
+        return {
+          stream: stream.stream,
+          type: stream.type
+        };
+      }
     } catch (error) {
-      logger.syserr('[PlayDLExtractor] Failed to download/stream:', error);
+      logger.syserr('[PlayDLExtractor] All streaming methods failed:', error);
       throw error;
     }
   }

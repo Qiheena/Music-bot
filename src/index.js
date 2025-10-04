@@ -310,6 +310,15 @@ if (modeArg && modeArg.endsWith('test')) process.exit(0);
       logger.syserr('Failed to load Deezer extractor:', err.message);
     }
   }
+  
+  // Register StreamingExtractor as final fallback
+  try {
+    const StreamingExtractor = require('./extractors/StreamingExtractor');
+    await player.extractors.register(StreamingExtractor, {});
+    logger.info('StreamingExtractor registered as final fallback for direct YouTube and SoundCloud streaming');
+  } catch (err) {
+    logger.syserr('Failed to load StreamingExtractor:', err.message);
+  }
 
   // Logging in to our client
   client.login(DISCORD_BOT_TOKEN);
