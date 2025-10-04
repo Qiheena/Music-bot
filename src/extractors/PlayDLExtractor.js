@@ -177,7 +177,48 @@ class PlayDLExtractor extends BaseExtractor {
       }
       else {
         logger.debug('[PlayDLExtractor] Searching YouTube for:', searchQuery);
-        const searched = await play.search(searchQuery, { limit: 15, source: { youtube: 'video' } });
+        let searched;
+        
+        try {
+          searched = await play.search(searchQuery, { limit: 15, source: { youtube: 'video' } });
+        } catch (err) {
+          logger.debug('[PlayDLExtractor] PlayDL search failed, trying youtube-sr:', err.message);
+          
+          try {
+            const ytSrResults = await youtubeSr.search(searchQuery, { limit: 15, type: 'video' });
+            if (ytSrResults && ytSrResults.length > 0) {
+              searched = ytSrResults.map(video => {
+                let durationSec = 0;
+                if (video.duration) {
+                  if (typeof video.duration === 'number') {
+                    durationSec = video.duration;
+                  } else if (video.duration.seconds) {
+                    durationSec = video.duration.seconds;
+                  } else if (typeof video.duration === 'string') {
+                    const parts = video.duration.split(':').map(Number);
+                    if (parts.length === 3) {
+                      durationSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                    } else if (parts.length === 2) {
+                      durationSec = parts[0] * 60 + parts[1];
+                    }
+                  }
+                }
+                
+                return {
+                  title: video.title,
+                  url: video.url,
+                  durationInSec: durationSec,
+                  thumbnails: [{ url: video.thumbnail?.url || '' }],
+                  channel: { name: video.channel?.name || 'Unknown', verified: video.channel?.verified || false },
+                  views: video.views || 0
+                };
+              });
+              logger.debug('[PlayDLExtractor] youtube-sr fallback successful, found', searched.length, 'results');
+            }
+          } catch (srErr) {
+            logger.syserr('[PlayDLExtractor] youtube-sr also failed:', srErr.message);
+          }
+        }
         
         if (!searched || searched.length === 0) {
           logger.syserr('[PlayDLExtractor] No search results found for:', searchQuery);
@@ -287,23 +328,30 @@ class PlayDLExtractor extends BaseExtractor {
 
   async streamFromYtdlCore(url, timeout = 8000) {
     let timeoutHandle;
+    let activeStream = null;
+    
     const streamPromise = new Promise((resolve, reject) => {
       try {
-        const stream = ytdl(url, {
+        activeStream = ytdl(url, {
           filter: 'audioonly',
           quality: 'highestaudio',
           highWaterMark: 1 << 25
         });
         
-        stream.on('error', reject);
-        stream.once('readable', () => resolve(stream));
+        activeStream.on('error', reject);
+        activeStream.once('readable', () => resolve(activeStream));
       } catch (err) {
         reject(err);
       }
     });
     
     const timeoutPromise = new Promise((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(new Error(`ytdl-core timeout after ${timeout}ms`)), timeout);
+      timeoutHandle = setTimeout(() => {
+        if (activeStream && typeof activeStream.destroy === 'function') {
+          activeStream.destroy();
+        }
+        reject(new Error(`ytdl-core timeout after ${timeout}ms`));
+      }, timeout);
     });
     
     try {
@@ -313,6 +361,9 @@ class PlayDLExtractor extends BaseExtractor {
       return { stream, source: 'ytdl-core', type: 'arbitrary' };
     } catch (error) {
       clearTimeout(timeoutHandle);
+      if (activeStream && typeof activeStream.destroy === 'function') {
+        activeStream.destroy();
+      }
       logger.debug(`[MultiTool] ✗ ytdl-core failed:`, error.message);
       throw error;
     }
@@ -320,23 +371,30 @@ class PlayDLExtractor extends BaseExtractor {
 
   async streamFromYtdlDistube(url, timeout = 8000) {
     let timeoutHandle;
+    let activeStream = null;
+    
     const streamPromise = new Promise((resolve, reject) => {
       try {
-        const stream = ytdlDistube(url, {
+        activeStream = ytdlDistube(url, {
           filter: 'audioonly',
           quality: 'highestaudio',
           highWaterMark: 1 << 25
         });
         
-        stream.on('error', reject);
-        stream.once('readable', () => resolve(stream));
+        activeStream.on('error', reject);
+        activeStream.once('readable', () => resolve(activeStream));
       } catch (err) {
         reject(err);
       }
     });
     
     const timeoutPromise = new Promise((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(new Error(`ytdl-distube timeout after ${timeout}ms`)), timeout);
+      timeoutHandle = setTimeout(() => {
+        if (activeStream && typeof activeStream.destroy === 'function') {
+          activeStream.destroy();
+        }
+        reject(new Error(`ytdl-distube timeout after ${timeout}ms`));
+      }, timeout);
     });
     
     try {
@@ -346,6 +404,9 @@ class PlayDLExtractor extends BaseExtractor {
       return { stream, source: '@distube/ytdl-core', type: 'arbitrary' };
     } catch (error) {
       clearTimeout(timeoutHandle);
+      if (activeStream && typeof activeStream.destroy === 'function') {
+        activeStream.destroy();
+      }
       logger.debug(`[MultiTool] ✗ @distube/ytdl-core failed:`, error.message);
       throw error;
     }
@@ -359,12 +420,24 @@ class PlayDLExtractor extends BaseExtractor {
       let completedCount = 0;
       const totalTools = 3;
       const errors = [];
+      const streams = [];
       
       const tryResolve = (result) => {
         if (!resolved) {
           resolved = true;
           logger.debug(`[MultiTool] ✓ Winner: ${result.source}`);
+          
+          streams.forEach(s => {
+            if (s !== result.stream && s && typeof s.destroy === 'function') {
+              s.destroy();
+            }
+          });
+          
           resolve(result);
+        } else {
+          if (result.stream && typeof result.stream.destroy === 'function') {
+            result.stream.destroy();
+          }
         }
       };
       
@@ -377,9 +450,20 @@ class PlayDLExtractor extends BaseExtractor {
         }
       };
       
-      this.streamFromPlayDL(url).then(tryResolve).catch(err => tryReject('PlayDL', err));
-      this.streamFromYtdlCore(url).then(tryResolve).catch(err => tryReject('ytdl-core', err));
-      this.streamFromYtdlDistube(url).then(tryResolve).catch(err => tryReject('@distube/ytdl-core', err));
+      this.streamFromPlayDL(url)
+        .then(result => { streams.push(result.stream); return result; })
+        .then(tryResolve)
+        .catch(err => tryReject('PlayDL', err));
+      
+      this.streamFromYtdlCore(url)
+        .then(result => { streams.push(result.stream); return result; })
+        .then(tryResolve)
+        .catch(err => tryReject('ytdl-core', err));
+      
+      this.streamFromYtdlDistube(url)
+        .then(result => { streams.push(result.stream); return result; })
+        .then(tryResolve)
+        .catch(err => tryReject('@distube/ytdl-core', err));
     });
   }
 
