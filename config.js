@@ -57,6 +57,7 @@ const config = {
     appleMusic: true,
     vimeo: true,
     reverbNation: true,
+    playDL: true,
   },
 
   // Bot activity
