@@ -1,3 +1,18 @@
+## [1.2.3] (2025-10-04)
+
+
+### Bug Fixes
+
+* **PlayDLExtractor:** Fix audio stream skipping at 120ms by wrapping play-dl stream with createStream() for proper discord-player compatibility
+* **PlayDLExtractor:** Replace console.log statements with proper logger.debug/logger.syserr for cleaner logging
+* **Webserver:** Improve Express server error handling and logging
+
+### Code Improvements
+
+* Improved logging consistency in PlayDLExtractor using project logger
+* Enhanced error handling and debugging capabilities for audio streaming
+* Added proper error event handler for Express webserver
+
 ## [1.2.2](https://github.com/Mirasaki/mirasaki-music-bot/compare/v1.2.1...v1.2.2) (2024-08-10)
 
 
