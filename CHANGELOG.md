@@ -1,3 +1,42 @@
+## [1.4.0] (2025-10-04)
+
+
+### Major Features
+
+* **🎵 Multiple Download Tools:** Implemented triple-redundancy for YouTube downloads (ytdl-core → play-dl → yt-dlp)
+* **📡 Direct Streaming Support:** Added StreamingExtractor for direct YouTube and SoundCloud streaming without downloads
+* **🔄 Hybrid Playback System:** Downloads prioritized for reliability, direct streaming as ultimate fallback
+* **🎼 Native SoundCloud Streaming:** SoundCloud now uses direct streaming instead of YouTube search conversion
+* **⚡ Enhanced Fallback Chain:** Multiple layers of redundancy ensure maximum playback reliability
+
+### Performance Improvements
+
+* **Better Reliability:** Triple download tools (ytdl-core, play-dl, yt-dlp) ensure higher success rate
+* **Faster Recovery:** Direct streaming fallback activates when all downloads fail
+* **Reduced Latency:** SoundCloud direct streaming eliminates YouTube search conversion delay
+* **Smart Fallbacks:** PlayDLExtractor automatically switches between download and streaming based on availability
+
+### Bug Fixes
+
+* **SoundCloud Enhancement:** Now uses direct streaming with YouTube search as fallback (reversed priority)
+* **Download Manager:** Added yt-dlp as third download option for maximum coverage
+* **Stream Method:** Enhanced with direct streaming fallback when downloads fail
+* **Source Detection:** Improved source tracking (youtube/soundcloud) for proper streaming method selection
+
+### Code Improvements
+
+* Created new StreamingExtractor class for direct streaming support
+* Enhanced MusicDownloadManager with yt-dlp integration and better error handling
+* Updated PlayDLExtractor to support both download and direct streaming modes
+* Added source tracking in track metadata for intelligent streaming decisions
+* Improved logging to show which method (download/stream) and tool is being used
+* Better error messages showing all attempted methods and their failure reasons
+
+### Dependencies
+
+* **Added:** yt-dlp-wrap v2.3.12 for additional YouTube download/streaming support
+* **Updated:** Version bumped to 1.4.0
+
 ## [1.3.1] (2025-10-04)
 
 

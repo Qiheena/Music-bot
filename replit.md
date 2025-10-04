@@ -8,6 +8,18 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## October 4, 2025 - Hybrid Playback System (v1.4.0)
+- **Triple-Redundancy Downloads**: Added yt-dlp as third download tool (ytdl-core → play-dl → yt-dlp)
+- **Direct Streaming Fallback**: Created StreamingExtractor for direct YouTube/SoundCloud streaming without downloads
+- **Native SoundCloud Streaming**: SoundCloud now uses direct streaming instead of YouTube search conversion
+- **Hybrid Architecture**: Downloads prioritized for reliability, direct streaming as ultimate fallback
+- **Enhanced PlayDLExtractor**: Now supports both download and direct streaming modes with intelligent switching
+- **Source Tracking**: Added source detection (youtube/soundcloud) in track metadata for proper streaming method selection
+- **Multiple Fallback Layers**: Each playback attempt has multiple backup methods ensuring maximum reliability
+- **Improved Error Handling**: Better error messages showing all attempted methods and their failure reasons
+- **Dependencies**: Added yt-dlp-wrap v2.3.12 for additional YouTube support
+- **Version**: Bumped to 1.4.0
+
 ## October 4, 2025 - Download-Based Playback Architecture
 - **Complete architectural overhaul**: Switched from streaming to download-first approach for YouTube playback
 - **New MusicDownloadManager service**: Handles audio file downloads with concurrency control (max 3 simultaneous)
@@ -51,14 +63,20 @@ Preferred communication style: Simple, everyday language.
 - **Persistence**: Settings persist across bot restarts
 
 ## Audio Processing
-- **Download-First Architecture**: Audio files downloaded before playback for reliability
+- **Hybrid Playback Architecture**: Download-first with direct streaming fallback for maximum reliability
 - **MusicDownloadManager**: Dedicated service for download orchestration
   - Concurrency control: Max 3 simultaneous downloads via p-queue
   - Download timeout: 45 seconds per attempt
-  - Redundancy: ytdl-core (primary) + play-dl (fallback)
+  - Triple redundancy: ytdl-core (primary) → play-dl (fallback) → yt-dlp (final)
   - Caching: Reuses already-downloaded files
   - Storage: ./tmp/audio/<guildId>/<trackId>.webm
-- **Extractors**: Platform-specific (SoundCloud, Apple Music, Vimeo, ReverbNation, attachments, YouTube via PlayDL)
+- **Extractors**: 
+  - PlayDLExtractor: YouTube with download + streaming support, SoundCloud with direct streaming
+  - StreamingExtractor: Final fallback for direct YouTube/SoundCloud streaming without downloads
+  - Default extractors: Apple Music, Vimeo, ReverbNation, attachments
+- **Playback Method Selection**:
+  - YouTube: Download (ytdl-core/play-dl/yt-dlp) → Direct streaming fallback
+  - SoundCloud: Direct streaming (primary) → YouTube search fallback (if streaming fails)
 - **Search Accuracy**: Enhanced YouTube ranking algorithm considering Topic channels, official audio, VEVO, verified channels, exact matches, quality markers, and view count
 - **Cleanup System**: 
   - Per-track cleanup when next track starts
@@ -104,11 +122,12 @@ Preferred communication style: Simple, everyday language.
 ## Music Services
 - **discord-player v7.1.0**: Music playback framework
 - **@discord-player/extractor v7.1.0**: Platform extractors (SoundCloud, Apple Music, Vimeo, ReverbNation, Discord Attachments)
-- **ytdl-core v4.11.5**: Primary YouTube audio downloader
-- **play-dl v1.9.7**: YouTube metadata + fallback downloader
+- **@distube/ytdl-core v4.16.12**: Primary YouTube audio downloader
+- **play-dl v1.9.7**: YouTube/SoundCloud metadata + streaming + fallback downloader
+- **yt-dlp-wrap v2.3.12**: Third fallback YouTube downloader
 - **youtube-sr v4.3.12**: YouTube search fallback
 - **p-queue v6.6.2**: Download concurrency control
-- **fs-extra v11.2.0**: File system operations for downloads
+- **fs-extra v11.3.2**: File system operations for downloads
 
 ## Database
 - **LokiJS**: In-memory document database
