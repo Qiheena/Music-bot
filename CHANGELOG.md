@@ -3,14 +3,26 @@
 
 ### Bug Fixes
 
+* **PlayDLExtractor:** Fix critical `createTrack is not a function` error by migrating to discord-player v7 Track API
+* **PlayDLExtractor:** Fix empty query bug in fallback streaming by extracting track title from context
 * **PlayDLExtractor:** Fix audio stream skipping at 120ms by wrapping play-dl stream with createStream() for proper discord-player compatibility
 * **PlayDLExtractor:** Replace console.log statements with proper logger.debug/logger.syserr for cleaner logging
 * **Webserver:** Improve Express server error handling and logging
 
+### Features
+
+* **YouTube Integration:** Re-enable YouTube support as primary metadata source for accurate song searches
+* **Intelligent Ranking:** Add relevance scoring system prioritizing official audio, verified channels, and Topic channels
+* **Multi-Platform:** Enhanced validate() method to properly route SoundCloud, Spotify, Apple Music, and Vimeo URLs to respective extractors
+* **Search Accuracy:** Implement smart YouTube search that ranks official/verified content higher for better song matching
+
 ### Code Improvements
 
+* Migrated PlayDLExtractor to use `new Track()` constructor instead of deprecated `createTrack()` method
+* Added proper ExtractorInfo return type `{ playlist: null, tracks: [] }` for discord-player v7 compatibility
 * Improved logging consistency in PlayDLExtractor using project logger
 * Enhanced error handling and debugging capabilities for audio streaming
+* Added formatDuration() helper method for proper time formatting
 * Added proper error event handler for Express webserver
 
 ## [1.2.2](https://github.com/QIHeena/QIHeena-music-bot/compare/v1.2.1...v1.2.2) (2024-08-10)

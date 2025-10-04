@@ -15,6 +15,8 @@
 </p>
 
 <p align="center">
+  <a href="https://www.youtube.com/">YouTube</a>
+  •
   <a href="https://soundcloud.com/">SoundCloud</a>
   •
   <a href="https://www.deezer.com/">Deezer</a>
@@ -86,7 +88,7 @@
 
 <br />
 
-> Note: We no longer support YouTube and Spotify due to their Terms of Service. We have a TypeScript rewrite planned that will focus heavily on local media libraries and playlists. Please don't create support inquiries for YouTube and Spotify streaming.
+> Note: YouTube support has been re-enabled via the PlayDL extractor with intelligent search ranking for accurate song results. Spotify is not supported due to Terms of Service restrictions. For the best experience, use YouTube search by song name or direct links from supported platforms.
 
 <h2 id="features">🤩 Features (non-exhaustive)</h2>
 
