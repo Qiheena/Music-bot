@@ -3,7 +3,7 @@ const path = require('path');
 const PQueue = require('p-queue').default;
 const ytdl = require('ytdl-core');
 const play = require('play-dl');
-const logger = require('../utils/logger');
+const logger = require('@QIHeena/logger');
 const { createWriteStream } = require('fs');
 const { pipeline } = require('stream/promises');
 
@@ -20,7 +20,10 @@ class MusicDownloadManager {
 
   generateTrackId(url) {
     const videoId = this.extractVideoId(url);
-    return videoId || `track_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    if (videoId) {
+      return videoId;
+    }
+    return `track_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   }
 
   extractVideoId(url) {

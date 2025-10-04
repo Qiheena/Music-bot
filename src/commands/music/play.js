@@ -59,7 +59,11 @@ module.exports = new ChatInputCommand({
     try {
       // Check is valid
       const searchResult = await player
-        .search(attachment?.url ?? query, { requestedBy: interaction.user })
+        .search(attachment?.url ?? query, { 
+          requestedBy: interaction.user,
+          searchEngine: 'playdl',
+          guildId: guild.id
+        })
         .catch(() => null);
       if (!searchResult.hasTracks()) {
         interaction.editReply(`${ emojis.error } ${ member }, no tracks found for query \`${ query }\` - this command has been cancelled`);

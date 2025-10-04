@@ -5,10 +5,18 @@ const {
 const { EmbedBuilder, escapeMarkdown } = require('discord.js');
 const { getGuildSettings } = require('./modules/db');
 const { MS_IN_ONE_SECOND, EMBED_DESCRIPTION_MAX_LENGTH } = require('./constants');
+const downloadManager = require('./services/MusicDownloadManager');
 
 module.exports = (player) => {
   // this event is emitted whenever discord-player starts to play a track
   player.events.on('playerStart', (queue, track) => {
+    const previousTrack = queue.history.previousTrack;
+    if (previousTrack && previousTrack.raw?.trackId && previousTrack.raw?.guildId) {
+      downloadManager.cleanup(previousTrack.raw.guildId, previousTrack.raw.trackId).catch(err => 
+        logger.debug('[MusicPlayer] Previous track cleanup failed:', err.message)
+      );
+    }
+    
     queue.metadata.channel.send({ embeds: [
       new EmbedBuilder({
         color: colorResolver(),
@@ -135,7 +143,10 @@ module.exports = (player) => {
   });
 
   player.events.on('disconnect', (queue) => {
-    // Emitted when the bot leaves the voice channel
+    downloadManager.cleanupGuild(queue.guild.id).catch(err => 
+      logger.syserr('[MusicPlayer] Failed to cleanup guild downloads:', err)
+    );
+    
     queue.metadata.channel.send({ embeds: [
       {
         color: colorResolver(),
