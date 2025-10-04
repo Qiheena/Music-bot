@@ -32,9 +32,11 @@ const checkInteractionAvailability = (interaction) => {
 
   // Check for outages
   if (guild?.available !== true) {
-    const { guild } = interaction;
-
-    logger.debug(`Interaction returned, server unavailable.\nServer: ${ guild.name } (${ guild.id })`);
+    if (guild) {
+      logger.debug(`Interaction returned, server unavailable.\nServer: ${ guild.name } (${ guild.id })`);
+    } else {
+      logger.debug('Interaction returned, guild is null or undefined.');
+    }
     return false;
   }
 
