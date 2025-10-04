@@ -3,7 +3,7 @@
 
 ### Bug Fixes
 
-* **Deezer Disabled:** Disabled Deezer extractor due to missing decryption key requirement - was causing all fallback streams to fail
+* **Deezer Removed:** Completely removed Deezer extractor and dependency due to missing decryption key requirement - was causing all fallback streams to fail
 * **Empty Query Fix:** Fixed critical issue where fallback streaming received empty queries, now properly extracts title from track metadata
 * **Multi-Platform Racing:** Removed non-functional Deezer from platform racing, now uses YouTube + SoundCloud only
 * **SoundCloud Fallback:** Improved fallback logic when SoundCloud URLs fail to stream - now properly searches YouTube with track title
