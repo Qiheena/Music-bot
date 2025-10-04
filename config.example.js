@@ -39,7 +39,7 @@ const config = {
     developers: [ '' ]
   },
 
-  supportServerInviteLink: 'https://discord.gg/mirasaki',
+  supportServerInviteLink: '',
 
   permissionsBase: [
     PermissionsBitField.Flags.ViewChannel,

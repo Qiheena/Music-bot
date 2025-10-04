@@ -1,5 +1,5 @@
 {
-  "name": "mirasaki-music-bot",
+  "name": "QIHeena-music-bot",
   "description": "A free, open-source JavaScript music bot created with discord.js and discord-player",
   "version": "1.2.2",
   "main": "src/index.js",
@@ -8,24 +8,24 @@
     "dev": "nodemon run node --trace-warnings .",
     "test": "node . mode=test",
     "commit": "cz",
-    "docker:build": "docker build --tag mirasaki-music-bot .",
-    "docker:shell": "docker run -it --rm mirasaki-music-bot sh",
-    "docker:start": "docker run -it -p 3000:3000 --env-file ./.env -d --name mirasaki-music-bot mirasaki-music-bot",
-    "docker:restart": "docker restart mirasaki-music-bot",
-    "docker:stop": "docker stop mirasaki-music-bot",
-    "docker:kill": "docker rm -f mirasaki-music-bot",
-    "docker:purge": "docker rm -fv mirasaki-music-bot",
-    "docker:logs": "docker logs mirasaki-music-bot -f",
-    "docker:image": "docker image tag mirasaki-music-bot mirasaki/mirasaki-music-bot",
-    "docker:push": "docker push mirasaki/mirasaki-music-bot",
+    "docker:build": "docker build --tag QIHeena-music-bot .",
+    "docker:shell": "docker run -it --rm QIHeena-music-bot sh",
+    "docker:start": "docker run -it -p 3000:3000 --env-file ./.env -d --name QIHeena-music-bot QIHeena-music-bot",
+    "docker:restart": "docker restart QIHeena-music-bot",
+    "docker:stop": "docker stop QIHeena-music-bot",
+    "docker:kill": "docker rm -f QIHeena-music-bot",
+    "docker:purge": "docker rm -fv QIHeena-music-bot",
+    "docker:logs": "docker logs QIHeena-music-bot -f",
+    "docker:image": "docker image tag QIHeena-music-bot QIHeena/QIHeena-music-bot",
+    "docker:push": "docker push QIHeena/QIHeena-music-bot",
     "docker:update": "git pull && npm install && npm run docker:stop && npm run docker:kill && npm run docker:build && npm run docker:start",
-    "docker:dev:build": "docker build --tag mirasaki-music-bot-dev -f ./.devcontainer/.Dockerfile .",
-    "docker:dev:start": "docker run -it --rm -v $(pwd):/app -v /app/node_modules -p 3000:3000 -p 9229:9229 -w /app mirasaki-music-bot-dev",
-    "pm2:start": "pm2 start --name=mirasaki-music-bot npm -- run start",
-    "pm2:stop": "pm2 stop mirasaki-music-bot",
-    "pm2:purge": "pm2 stop mirasaki-music-bot && pm2 delete mirasaki-music-bot && pm2 reset mirasaki-music-bot",
-    "pm2:logs": "pm2 logs --lines 300 mirasaki-music-bot",
-    "pm2:logsError": "pm2 logs --err --lines 300 mirasaki-music-bot",
+    "docker:dev:build": "docker build --tag QIHeena-music-bot-dev -f ./.devcontainer/.Dockerfile .",
+    "docker:dev:start": "docker run -it --rm -v $(pwd):/app -v /app/node_modules -p 3000:3000 -p 9229:9229 -w /app QIHeena-music-bot-dev",
+    "pm2:start": "pm2 start --name=QIHeena-music-bot npm -- run start",
+    "pm2:stop": "pm2 stop QIHeena-music-bot",
+    "pm2:purge": "pm2 stop QIHeena-music-bot && pm2 delete QIHeena-music-bot && pm2 reset QIHeena-music-bot",
+    "pm2:logs": "pm2 logs --lines 300 QIHeena-music-bot",
+    "pm2:logsError": "pm2 logs --err --lines 300 QIHeena-music-bot",
     "lint": "eslint src",
     "linter": "eslint src --fix",
     "writeLinter": "eslint src --output-file linter-output.txt"
@@ -60,7 +60,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Mirasaki/mirasaki-music-bot.git"
+    "url": "git+https://github.com/QIHeena/QIHeena-music-bot.git"
   },
   "keywords": [
     "nodejs",
@@ -83,12 +83,12 @@
     "select-menus",
     "documented"
   ],
-  "author": "Richard Hillebrand (Mirasaki)",
+  "author": "QIHeena",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Mirasaki/mirasaki-music-bot/issues"
+    "url": "https://github.com/QIHeena/QIHeena-music-bot/issues"
   },
-  "homepage": "https://github.com/Mirasaki/mirasaki-music-bot#readme",
+  "homepage": "https://github.com/QIHeena/QIHeena-music-bot#readme",
   "optionalDependencies": {
     "fsevents": "^2.3.3"
   },

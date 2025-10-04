@@ -83,7 +83,7 @@ const config = {
   },
 
   // The Discord server invite to your Support server
-  supportServerInviteLink: 'https://discord.gg/mirasaki',
+  supportServerInviteLink: '',
 
   // Additional permissions that are considered required when generating
   // the bot invite link with /invite
