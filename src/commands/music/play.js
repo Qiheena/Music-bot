@@ -9,6 +9,7 @@ const {
   useMainPlayer, useQueue, EqualizerConfigurationPreset
 } = require('discord-player');
 const { MS_IN_ONE_SECOND } = require('../../constants');
+const logger = require('@QIHeena/logger');
 const player = useMainPlayer();
 
 module.exports = new ChatInputCommand({
@@ -64,11 +65,17 @@ module.exports = new ChatInputCommand({
           searchEngine: 'playdl',
           guildId: guild.id
         })
-        .catch(() => null);
-      if (!searchResult.hasTracks()) {
+        .catch((err) => {
+          logger.syserr('[Play Command] Search failed:', err);
+          return null;
+        });
+      if (!searchResult || !searchResult.hasTracks()) {
+        logger.debug('[Play Command] No tracks found for query:', query);
         interaction.editReply(`${ emojis.error } ${ member }, no tracks found for query \`${ query }\` - this command has been cancelled`);
         return;
       }
+      
+      logger.info('[Play Command] Found tracks:', searchResult.tracks.length, 'First:', searchResult.tracks[0]?.title);
 
       // Resolve settings
       const settings = getGuildSettings(guild.id);
@@ -92,6 +99,7 @@ module.exports = new ChatInputCommand({
 
       // nodeOptions are the options for guild node (aka your queue in simple word)
       // we can access this metadata object using queue.metadata later on
+      logger.info('[Play Command] Calling player.play for:', searchResult.tracks[0]?.title);
       const { track } = await player.play(
         channel,
         searchResult,
@@ -112,6 +120,8 @@ module.exports = new ChatInputCommand({
           }
         }
       );
+      
+      logger.info('[Play Command] player.play succeeded, track:', track?.title);
 
       // Use queue
       const queue = useQueue(guild.id);
@@ -135,6 +145,8 @@ module.exports = new ChatInputCommand({
       await interaction.editReply(`${ emojis.success } ${ member }, enqueued **\`${ track.title }\`**!`);
     }
     catch (e) {
+      logger.syserr('[Play Command] Error during play command:', e);
+      logger.printErr(e);
       interaction.editReply(`${ emojis.error } ${ member }, something went wrong:\n\n${ e.message }`);
     }
   }
