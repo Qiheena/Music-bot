@@ -3,6 +3,7 @@ const path = require('path');
 const PQueue = require('p-queue').default;
 const ytdl = require('@distube/ytdl-core');
 const play = require('play-dl');
+const YTDlpWrap = require('yt-dlp-wrap').default;
 const logger = require('@QIHeena/logger');
 const { createWriteStream } = require('fs');
 const { pipeline } = require('stream/promises');
@@ -13,9 +14,21 @@ class MusicDownloadManager {
     this.queue = new PQueue({ concurrency: 3 });
     this.downloads = new Map();
     this.downloadTimeouts = 45000;
+    this.ytDlpWrap = null;
     
     fs.ensureDirSync(this.baseDir);
+    this.initYtDlp();
     logger.info('[DownloadManager] Initialized with directory:', this.baseDir);
+  }
+
+  async initYtDlp() {
+    try {
+      this.ytDlpWrap = new YTDlpWrap();
+      logger.info('[DownloadManager] yt-dlp initialized successfully');
+    } catch (err) {
+      logger.debug('[DownloadManager] yt-dlp initialization failed:', err.message);
+      this.ytDlpWrap = null;
+    }
   }
 
   generateTrackId(url) {
@@ -127,6 +140,62 @@ class MusicDownloadManager {
     });
   }
 
+  async downloadWithYtDlp(url, filePath) {
+    logger.debug('[DownloadManager] Attempting yt-dlp download:', url);
+    
+    if (!this.ytDlpWrap) {
+      throw new Error('yt-dlp not initialized');
+    }
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('yt-dlp download timeout'));
+      }, this.downloadTimeouts);
+
+      try {
+        this.ytDlpWrap
+          .execStream([
+            url,
+            '-f', 'bestaudio',
+            '-o', '-',
+            '--no-playlist',
+            '--extract-audio',
+            '--audio-format', 'opus'
+          ])
+          .then(readableStream => {
+            const writeStream = createWriteStream(filePath);
+            
+            readableStream.pipe(writeStream);
+
+            readableStream.on('error', (err) => {
+              clearTimeout(timeout);
+              writeStream.destroy();
+              reject(err);
+            });
+
+            writeStream.on('error', (err) => {
+              clearTimeout(timeout);
+              readableStream.destroy();
+              reject(err);
+            });
+
+            writeStream.on('finish', () => {
+              clearTimeout(timeout);
+              logger.debug('[DownloadManager] yt-dlp download complete:', filePath);
+              resolve(filePath);
+            });
+          })
+          .catch(err => {
+            clearTimeout(timeout);
+            reject(err);
+          });
+      } catch (err) {
+        clearTimeout(timeout);
+        reject(err);
+      }
+    });
+  }
+
   async download(url, guildId, trackId) {
     const downloadKey = `${guildId}_${trackId}`;
     
@@ -175,6 +244,19 @@ class MusicDownloadManager {
         
         if (fs.existsSync(filePath)) {
           fs.removeSync(filePath);
+        }
+      }
+
+      if (this.ytDlpWrap) {
+        try {
+          return await this.downloadWithYtDlp(url, filePath);
+        } catch (ytDlpError) {
+          logger.debug('[DownloadManager] yt-dlp failed:', ytDlpError.message);
+          errors.push({ tool: 'yt-dlp', error: ytDlpError.message });
+          
+          if (fs.existsSync(filePath)) {
+            fs.removeSync(filePath);
+          }
         }
       }
 
