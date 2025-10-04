@@ -1,10 +1,20 @@
 # Overview
 
-This Discord music bot, built with Discord.js and discord-player, offers a comprehensive music playback solution for Discord servers. It supports streaming from multiple platforms including YouTube, SoundCloud, Apple Music, Vimeo, ReverbNation, Deezer, and direct audio file attachments. Key features include advanced music controls, queue management, audio filtering, customizable server settings, and high-quality audio streaming. The bot is designed for self-hosting, supporting Docker deployment, and provides features like thread-based music sessions, DJ roles, and persistent configuration.
+This Discord music bot, built with Discord.js and discord-player, offers a comprehensive music playback solution for Discord servers. It supports streaming from multiple platforms including YouTube, SoundCloud, Apple Music, Vimeo, ReverbNation, and direct audio file attachments. Key features include advanced music controls, queue management, audio filtering, customizable server settings, and high-quality audio streaming. The bot is designed for self-hosting, supporting Docker deployment, and provides features like thread-based music sessions, DJ roles, and persistent configuration.
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+# Recent Changes
+
+## October 4, 2025 - Security & Optimization Update
+- **Removed ytdl-core dependency**: Eliminated download/cache approach that was causing "Could not parse decipher function" errors
+- **Simplified PlayDLExtractor**: Streamlined stream() method to rely on play-dl's native streaming without file downloads
+- **Security fixes**: Removed discord-player-deezer (had axios vulnerabilities), disabled Deezer support
+- **Dependency updates**: Upgraded Express from 4.18.2 to 4.21.2
+- **Dockerfile optimization**: Switched to Alpine Linux base, added health check, non-root user execution
+- **Result**: Zero npm security vulnerabilities, cleaner startup logs, more reliable streaming
 
 # System Architecture
 
@@ -38,7 +48,7 @@ Preferred communication style: Simple, everyday language.
 - **Persistence**: Settings persist across bot restarts
 
 ## Audio Processing
-- **Extractors**: Platform-specific (SoundCloud, Apple Music, Vimeo, ReverbNation, attachments, Deezer, YouTube via PlayDL)
+- **Extractors**: Platform-specific (SoundCloud, Apple Music, Vimeo, ReverbNation, attachments, YouTube via PlayDL)
 - **Multi-Platform Racing**: Parallel streaming from YouTube and SoundCloud with intelligent priority-based selection
 - **Stream Priority**: YouTube (100+ priority) heavily favored over SoundCloud (50+ priority)
 - **Fast Playback**: Plays first available stream with 500ms grace period for higher priority sources
@@ -82,7 +92,6 @@ Preferred communication style: Simple, everyday language.
 ## Music Services
 - **discord-player v7.1.0**: Music playback framework
 - **@discord-player/extractor v7.1.0**: Platform extractors (SoundCloud, Apple Music, Vimeo, ReverbNation, Discord Attachments)
-- **discord-player-deezer**: Deezer music source extractor
 - **PlayDL**: YouTube support with parallel search
 - **mediaplex**: Audio streaming utility
 
@@ -92,7 +101,7 @@ Preferred communication style: Simple, everyday language.
 - **Adapter**: LokiFsAdapter
 
 ## Web Server
-- **Express v4.18.2**: HTTP server for health checks and API endpoints
+- **Express v4.21.2**: HTTP server for health checks and API endpoints
 - **Routes**: `/`, `/api/commands`
 - **Port**: 5000 (default)
 
