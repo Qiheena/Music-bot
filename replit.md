@@ -1,6 +1,6 @@
 # Overview
 
-This is a Discord music bot built with Discord.js and discord-player. The bot enables server members to play music from various streaming platforms including SoundCloud, Apple Music, Vimeo, ReverbNation, and direct audio file attachments. It provides comprehensive music playback controls, queue management, audio filtering, and customizable server-specific settings.
+This is a Discord music bot built with Discord.js and discord-player. The bot enables server members to play music from various streaming platforms including YouTube (via PlayDL with parallel search), SoundCloud, Apple Music, Vimeo, ReverbNation, and direct audio file attachments. It provides comprehensive music playback controls, queue management, audio filtering, and customizable server-specific settings with high-quality streaming.
 
 The bot is designed as a self-hosted solution, giving server administrators full control over their music bot instance. It supports Docker deployment and includes features like thread-based music sessions, DJ roles, audio filters, equalizers, and persistent configuration.
 
@@ -101,7 +101,7 @@ Preferred communication style: Simple, everyday language.
 - **discord-player-deezer**: Deezer music source extractor (new)
 - **mediaplex**: Audio streaming utility
 
-**Note**: YouTube and Spotify support were removed (as of v1.2.2)
+**Note**: YouTube support has been re-enabled (v1.2.3+) via PlayDL extractor with parallel search. Spotify support was removed due to ToS restrictions (as of v1.2.2)
 
 ## Database
 - **LokiJS**: In-memory document database with filesystem persistence
@@ -136,7 +136,24 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## October 4, 2025 (Latest - YouTube Integration & Critical Fixes)
+## October 4, 2025 (Latest - v1.3.0 High Quality & Parallel Streaming)
+- **High Quality Audio**: All streams now use highest quality setting (quality: 2) for best possible audio
+- **Parallel Platform Search**: Implemented simultaneous search across YouTube and SoundCloud using Promise.any race
+- **Fastest Wins**: Whichever platform responds first streams immediately, minimizing wait time
+- **15-Second Timeout**: Each platform has 15-second timeout with automatic failover to backup platform
+- **Smart URL Handling**: Direct YouTube URLs stream immediately, SoundCloud URLs race with YouTube fallback for reliability
+- **Performance**: Parallel search reduces average song load time by racing multiple platforms simultaneously
+- **Memory Leak Fix**: Proper timeout cleanup with clearTimeout to prevent resource leaks
+- **Better Errors**: Improved error messages showing which platforms failed and why
+- **Architecture**: Refactored stream() with three distinct paths: direct YouTube, direct SoundCloud (with fallback), and parallel multi-platform search
+
+**Technical Details**:
+- Added `streamFromPlatform()` helper method with timeout wrapper
+- Fixed `so_validate()` to check URL instead of title for proper platform detection
+- Enhanced logging shows platform race winners and detailed failure diagnostics
+- All streaming uses highest quality available from each platform
+
+## October 4, 2025 (Earlier - YouTube Integration & Critical Fixes)
 - **Critical Fix**: Fixed `TypeError: this.createTrack is not a function` by migrating PlayDLExtractor to discord-player v7 Track API
 - **YouTube Re-enabled**: Re-enabled YouTube support as primary metadata source for all song name searches using PlayDL extractor
 - **Fallback Query Fix**: Fixed critical bug where fallback YouTube search received empty queries, now properly extracts track title from context when query is not a string
