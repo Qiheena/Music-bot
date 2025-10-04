@@ -1,4 +1,4 @@
-const { BaseExtractor } = require('discord-player');
+const { BaseExtractor, Track } = require('discord-player');
 const play = require('play-dl');
 const logger = require('@QIHeena/logger');
 
@@ -41,7 +41,7 @@ class PlayDLExtractor extends BaseExtractor {
         searchQuery = context?.track?.title || context?.title || '';
         if (!searchQuery) {
           logger.syserr('[PlayDLExtractor] Could not extract query from context');
-          return this.createResponse();
+          return { playlist: null, tracks: [] };
         }
       }
       
@@ -51,16 +51,20 @@ class PlayDLExtractor extends BaseExtractor {
       if (searchQuery.includes('youtube.com') || searchQuery.includes('youtu.be')) {
         logger.debug('[PlayDLExtractor] YouTube URL detected, fetching info...');
         const info = await play.video_basic_info(searchQuery);
-        searchResult = [{
-          url: info.video_details.url,
+        const track = new Track(this.context.player, {
           title: info.video_details.title,
+          url: info.video_details.url,
           duration: info.video_details.durationInSec * 1000,
-          thumbnail: info.video_details.thumbnails[0]?.url,
+          thumbnail: info.video_details.thumbnails[0]?.url || '',
           author: info.video_details.channel.name,
           views: info.video_details.views,
-          source: 'youtube'
-        }];
+          requestedBy: context.requestedBy,
+          source: 'youtube',
+          queryType: context.type
+        });
+        track.extractor = this;
         logger.debug('[PlayDLExtractor] YouTube info fetched:', info.video_details.title);
+        return { playlist: null, tracks: [track] };
       } 
       else {
         logger.debug('[PlayDLExtractor] Searching YouTube for:', searchQuery);
@@ -68,7 +72,7 @@ class PlayDLExtractor extends BaseExtractor {
         
         if (!searched || searched.length === 0) {
           logger.syserr('[PlayDLExtractor] No search results found for:', searchQuery);
-          return this.createResponse();
+          return { playlist: null, tracks: [] };
         }
         
         searchResult = searched.map(video => {
@@ -100,31 +104,32 @@ class PlayDLExtractor extends BaseExtractor {
 
       if (!searchResult || searchResult.length === 0) {
         logger.syserr('[PlayDLExtractor] No results to process');
-        return this.createResponse();
+        return { playlist: null, tracks: [] };
       }
 
-      const tracks = searchResult.map(track => 
-        this.createTrack({
-          title: track.title,
-          url: track.url,
-          duration: track.duration,
-          thumbnail: track.thumbnail,
-          author: track.author,
-          views: track.views,
+      const tracks = searchResult.map(trackData => {
+        const track = new Track(this.context.player, {
+          title: trackData.title,
+          url: trackData.url,
+          duration: trackData.duration,
+          thumbnail: trackData.thumbnail || '',
+          author: trackData.author,
+          views: trackData.views,
           requestedBy: context.requestedBy,
-          source: track.source,
-          engine: track.url,
-          metadata: track
-        })
-      );
+          source: 'youtube',
+          queryType: context.type
+        });
+        track.extractor = this;
+        return track;
+      });
 
       logger.debug('[PlayDLExtractor] Created', tracks.length, 'track(s)');
-      return this.createResponse(null, tracks);
+      return { playlist: null, tracks };
     } 
     catch (error) {
       logger.syserr('[PlayDLExtractor] Error in handle():', error.message);
       logger.printErr(error);
-      return this.createResponse();
+      return { playlist: null, tracks: [] };
     }
   }
 
