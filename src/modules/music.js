@@ -261,11 +261,15 @@ const queueEmbeds = (queue, guild, title) => {
   
             ${ chunkOutput }
           `)
-      .setImage(chunk[0]?.thumbnail)
       .setFooter({ text: `Page ${ Math.ceil((i + chunkSize) / chunkSize) } of ${
         Math.ceil(currQueue.length / chunkSize)
       // eslint-disable-next-line sonarjs/no-nested-template-literals
       } (${ i + 1 }-${ Math.min(i + chunkSize, currQueue.length) } / ${ currQueue.length })${ queue.estimatedDuration ? `\nEstimated Time Remaining: ${ msToHumanReadableTime(queue.estimatedDuration) }` : '' }` });
+    
+    const thumbnailUrl = chunk[0]?.thumbnail;
+    if (thumbnailUrl && thumbnailUrl.trim()) {
+      embed.setImage(thumbnailUrl);
+    }
 
     // Always push to usable embeds
     usableEmbeds.push(embed);
