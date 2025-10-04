@@ -1,3 +1,32 @@
+## [1.3.0] (2025-10-04)
+
+
+### Features
+
+* **High Quality Audio:** Force highest quality (quality: 2) streaming for all platforms
+* **Parallel Platform Search:** Implement simultaneous search across YouTube and SoundCloud with Promise.any race
+* **Fast Fallback:** Fastest platform to respond wins, ensuring minimal wait time for users
+* **Timeout Handling:** Add 15-second timeout per platform with automatic failover to prevent long waits
+* **Direct URL Optimization:** Direct YouTube URLs stream immediately, SoundCloud URLs race with YouTube fallback
+
+### Performance Improvements
+
+* **Faster Playback:** Parallel search reduces average song load time by racing multiple platforms
+* **Resource Management:** Proper timeout cleanup with clearTimeout to prevent memory leaks
+* **Stream Quality:** All streams now use highest available quality setting
+
+### Bug Fixes
+
+* **Timeout Leak:** Fix memory leak by properly clearing timeout handles on success and failure
+* **SoundCloud Validation:** Fixed so_validate() to check URL instead of title for proper SoundCloud detection
+* **Error Aggregation:** Improved error messages showing detailed failure reasons from all platforms
+
+### Code Improvements
+
+* Refactored stream() method with three distinct paths: direct YouTube, direct SoundCloud, and parallel search
+* Added streamFromPlatform() helper with timeout wrapper for consistent platform handling
+* Enhanced logging to show platform race winners and detailed failure diagnostics
+
 ## [1.2.3] (2025-10-04)
 
 
