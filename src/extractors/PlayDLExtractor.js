@@ -1,10 +1,6 @@
 const { BaseExtractor, Track } = require('discord-player');
 const play = require('play-dl');
 const logger = require('@QIHeena/logger');
-const ytdl = require('@distube/ytdl-core');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
 
 class PlayDLExtractor extends BaseExtractor {
   static identifier = 'com.playernix.playdl';
@@ -258,81 +254,6 @@ class PlayDLExtractor extends BaseExtractor {
     }
   }
 
-  async downloadAndCache(url, title) {
-    const cacheDir = '/tmp/music_cache';
-    
-    if (!fs.existsSync(cacheDir)) {
-      fs.mkdirSync(cacheDir, { recursive: true });
-      logger.debug(`[PlayDLExtractor] Created cache directory:`, cacheDir);
-    }
-    
-    const hash = crypto.createHash('md5').update(url).digest('hex');
-    const fileName = `${hash}.opus`;
-    const filePath = path.join(cacheDir, fileName);
-    
-    if (fs.existsSync(filePath)) {
-      logger.debug(`[PlayDLExtractor] ✓ Cache hit for:`, title);
-      return filePath;
-    }
-    
-    logger.debug(`[PlayDLExtractor] Downloading from YouTube:`, title);
-    
-    return new Promise((resolve, reject) => {
-      const stream = ytdl(url, {
-        filter: 'audioonly',
-        quality: 'highestaudio',
-        highWaterMark: 1 << 25
-      });
-      
-      const writeStream = fs.createWriteStream(filePath);
-      
-      stream.pipe(writeStream);
-      
-      stream.on('error', (err) => {
-        logger.debug(`[PlayDLExtractor] ✗ Download failed:`, err.message);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-        reject(err);
-      });
-      
-      writeStream.on('finish', () => {
-        logger.debug(`[PlayDLExtractor] ✓ Download complete:`, title);
-        this.cleanupOldCache(cacheDir);
-        resolve(filePath);
-      });
-      
-      writeStream.on('error', (err) => {
-        logger.debug(`[PlayDLExtractor] ✗ Write failed:`, err.message);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-        reject(err);
-      });
-    });
-  }
-  
-  cleanupOldCache(cacheDir) {
-    try {
-      const files = fs.readdirSync(cacheDir);
-      if (files.length > 50) {
-        const fileStats = files.map(file => ({
-          file,
-          path: path.join(cacheDir, file),
-          time: fs.statSync(path.join(cacheDir, file)).mtime.getTime()
-        })).sort((a, b) => a.time - b.time);
-        
-        const filesToDelete = fileStats.slice(0, 20);
-        filesToDelete.forEach(({ path }) => {
-          fs.unlinkSync(path);
-          logger.debug(`[PlayDLExtractor] Cleaned up cache file:`, path);
-        });
-      }
-    } catch (err) {
-      logger.debug(`[PlayDLExtractor] Cache cleanup error:`, err.message);
-    }
-  }
-  
   async streamFromPlatform(url, platform) {
     const timeout = 10000;
     let timeoutHandle;
@@ -472,9 +393,20 @@ class PlayDLExtractor extends BaseExtractor {
       logger.debug('[PlayDLExtractor] Attempting to stream:', info.url);
       logger.debug('[PlayDLExtractor] Track title:', info.title);
       
-      let youtubeUrl = null;
       const urlsToRace = [];
+      let searchQuery = info.raw?.searchQuery || info.title || info.author || '';
       
+      if (!searchQuery || !searchQuery.trim()) {
+        searchQuery = info.description || info.url || '';
+      }
+      
+      searchQuery = searchQuery.trim();
+      
+      if (!searchQuery) {
+        throw new Error('Cannot search with empty query - no metadata available');
+      }
+      
+      let youtubeUrl = null;
       if (info.url.includes('youtube.com') || info.url.includes('youtu.be')) {
         youtubeUrl = info.url;
       } else if (info.raw?.youtubeUrl) {
@@ -482,45 +414,15 @@ class PlayDLExtractor extends BaseExtractor {
       }
       
       if (youtubeUrl) {
-        logger.debug('[PlayDLExtractor] YouTube URL:', youtubeUrl);
-        logger.debug('[PlayDLExtractor] Trying download-first approach with high priority...');
-        
-        try {
-          const cachedFile = await this.downloadAndCache(youtubeUrl, info.title);
-          logger.debug('[PlayDLExtractor] ✓ Streaming from cached file:', cachedFile);
-          
-          if (!fs.existsSync(cachedFile)) {
-            throw new Error('Downloaded file not found');
-          }
-          
-          const fileStream = fs.createReadStream(cachedFile);
-          
-          fileStream.on('error', (err) => {
-            logger.syserr('[PlayDLExtractor] Read stream error:', err.message);
-          });
-          
-          return this.createStream(fileStream, { type: 'opus' });
-        } catch (err) {
-          logger.debug('[PlayDLExtractor] Download-first approach failed, will add to race:', err.message);
-          urlsToRace.push({ url: youtubeUrl, platform: 'YouTube', priority: 100 });
-        }
+        urlsToRace.push({ url: youtubeUrl, platform: 'YouTube', priority: 100 });
       }
       
-      let searchQuery = info.raw?.searchQuery || info.title || info.author || '';
-      
-      if (!searchQuery || !searchQuery.trim()) {
-        logger.syserr('[PlayDLExtractor] Empty search query! Attempting to extract from all metadata...');
-        searchQuery = info.description || '';
-        
-        if (!searchQuery || !searchQuery.trim()) {
-          throw new Error('Cannot search with empty query - no title, author, or description available');
-        }
+      if (info.raw?.soundcloudFallback) {
+        urlsToRace.push({ url: info.raw.soundcloudFallback, platform: 'SoundCloud', priority: 60 });
       }
       
-      searchQuery = searchQuery.trim();
-      
-      if (!youtubeUrl) {
-        logger.debug('[PlayDLExtractor] No direct YouTube URL, searching multiple platforms in parallel...');
+      if (urlsToRace.length === 0) {
+        logger.debug('[PlayDLExtractor] No direct URLs, searching multiple platforms...');
         const platformResults = await this.searchMultiplePlatforms(searchQuery);
         
         for (const { platform, results } of platformResults) {
@@ -540,11 +442,6 @@ class PlayDLExtractor extends BaseExtractor {
         }
       }
       
-      if (info.raw?.soundcloudFallback) {
-        logger.debug('[PlayDLExtractor] Adding SoundCloud fallback URL to race');
-        urlsToRace.push({ url: info.raw.soundcloudFallback, platform: 'SoundCloud', priority: 60 });
-      }
-      
       if (urlsToRace.length > 0) {
         logger.debug(`[PlayDLExtractor] Racing ${urlsToRace.length} streams from multiple platforms...`);
         logger.debug('[PlayDLExtractor] Platform priorities: YouTube (100+), SoundCloud (50+)');
@@ -558,25 +455,24 @@ class PlayDLExtractor extends BaseExtractor {
         }
       }
       
-      logger.debug('[PlayDLExtractor] All streaming attempts failed, trying final fallback search...');
+      logger.debug('[PlayDLExtractor] All attempts failed, trying SoundCloud fallback...');
       try {
         const searched = await play.search(searchQuery, { limit: 1, source: { soundcloud: 'tracks' } });
         if (searched && searched.length > 0) {
-          logger.debug('[PlayDLExtractor] Final fallback - SoundCloud found:', searched[0].title);
+          logger.debug('[PlayDLExtractor] SoundCloud fallback found:', searched[0].title);
           const streamData = await this.streamFromPlatform(searched[0].url, 'SoundCloud');
           return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
         }
       } catch (err) {
-        logger.debug('[PlayDLExtractor] Final fallback failed:', err.message);
+        logger.debug('[PlayDLExtractor] SoundCloud fallback failed:', err.message);
       }
       
-      throw new Error('⚠️ Could not stream from any platform. All sources failed or timed out.');
+      throw new Error('Could not stream from any platform. Please try a different song or use a direct platform URL.');
     } 
     catch (error) {
-      logger.syserr('[PlayDLExtractor] Stream error for:', info.title || info.url);
-      logger.syserr('[PlayDLExtractor] Error details:', error.message);
-      logger.printErr(error);
-      throw new Error(`Failed to create audio stream: ${error.message}`);
+      logger.debug('[PlayDLExtractor] Stream error for:', info.title || info.url);
+      logger.debug('[PlayDLExtractor] Error details:', error.message);
+      throw error;
     }
   }
 
