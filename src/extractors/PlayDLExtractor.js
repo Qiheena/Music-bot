@@ -232,6 +232,12 @@ class PlayDLExtractor extends BaseExtractor {
 
   async downloadAndCache(url, title) {
     const cacheDir = '/tmp/music_cache';
+    
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+      logger.debug(`[PlayDLExtractor] Created cache directory:`, cacheDir);
+    }
+    
     const hash = crypto.createHash('md5').update(url).digest('hex');
     const fileName = `${hash}.opus`;
     const filePath = path.join(cacheDir, fileName);
@@ -374,7 +380,16 @@ class PlayDLExtractor extends BaseExtractor {
           const cachedFile = await this.downloadAndCache(youtubeUrl, info.title);
           logger.debug('[PlayDLExtractor] ✓ Streaming from cached file:', cachedFile);
           
+          if (!fs.existsSync(cachedFile)) {
+            throw new Error('Downloaded file not found');
+          }
+          
           const fileStream = fs.createReadStream(cachedFile);
+          
+          fileStream.on('error', (err) => {
+            logger.syserr('[PlayDLExtractor] Read stream error:', err.message);
+          });
+          
           return this.createStream(fileStream, { type: 'opus' });
         } catch (err) {
           logger.debug('[PlayDLExtractor] Download-first approach failed:', err.message);
