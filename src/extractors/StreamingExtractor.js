@@ -239,21 +239,38 @@ class StreamingExtractor extends BaseExtractor {
         }
       }
       
-      logger.debug('[StreamingExtractor] Using yt-dlp for stream URL extraction');
-      const { exec } = require('child_process');
-      const { promisify } = require('util');
-      const execAsync = promisify(exec);
+      logger.debug('[StreamingExtractor] Using yt-dlp for streaming');
+      const { spawn } = require('child_process');
+      const { PassThrough } = require('stream');
       
-      const { stdout } = await execAsync(`yt-dlp -f bestaudio --get-url "${url}"`);
-      const streamUrl = stdout.trim();
+      const ytdlpProcess = spawn('yt-dlp', [
+        '-f', 'bestaudio',
+        '--no-warnings',
+        '-o', '-',
+        url
+      ]);
       
-      if (!streamUrl || !streamUrl.startsWith('http')) {
-        throw new Error('yt-dlp failed to extract stream URL');
-      }
+      const stream = new PassThrough();
+      ytdlpProcess.stdout.pipe(stream);
       
-      logger.debug('[StreamingExtractor] yt-dlp extracted stream URL successfully');
+      ytdlpProcess.stderr.on('data', (data) => {
+        logger.debug('[StreamingExtractor] yt-dlp stderr:', data.toString().trim());
+      });
+      
+      ytdlpProcess.on('error', (error) => {
+        logger.syserr('[StreamingExtractor] yt-dlp process error:', error.message);
+        stream.destroy(error);
+      });
+      
+      ytdlpProcess.on('close', (code) => {
+        if (code !== 0) {
+          logger.syserr('[StreamingExtractor] yt-dlp exited with code:', code);
+        }
+      });
+      
+      logger.debug('[StreamingExtractor] yt-dlp stream created successfully');
       return {
-        stream: streamUrl,
+        stream: stream,
         type: 'arbitrary'
       };
     } catch (error) {
