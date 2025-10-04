@@ -86,15 +86,22 @@ const rest = new REST({ version: '10' })
 const clearApplicationCommandData = () => {
   logger.info('Clearing ApplicationCommand API data');
   rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), { body: [] });
-  rest.put(
-    Routes.applicationGuildCommands(DISCORD_CLIENT_ID, TEST_SERVER_GUILD_ID),
-    { body: [] }
-  )
-    .catch((err) => {
-      // Catching Missing Access error
-      logger.syserr('Error encountered while trying to clear GuildCommands in the test server, this probably means your TEST_SERVER_GUILD_ID in the .env file is invalid or the client isn\'t currently in that server');
-      logger.syserr(err);
-    });
+  
+  // Only clear test server commands if TEST_SERVER_GUILD_ID is valid
+  if (TEST_SERVER_GUILD_ID && /^\d{17,19}$/.test(TEST_SERVER_GUILD_ID)) {
+    rest.put(
+      Routes.applicationGuildCommands(DISCORD_CLIENT_ID, TEST_SERVER_GUILD_ID),
+      { body: [] }
+    )
+      .catch((err) => {
+        // Catching Missing Access error
+        logger.syserr('Error encountered while trying to clear GuildCommands in the test server, this probably means your TEST_SERVER_GUILD_ID in the .env file is invalid or the client isn\'t currently in that server');
+        logger.syserr(err);
+      });
+  } else if (TEST_SERVER_GUILD_ID) {
+    logger.syserr(`Invalid TEST_SERVER_GUILD_ID: "${TEST_SERVER_GUILD_ID}". Skipping test server command cleanup.`);
+  }
+  
   logger.success('Successfully reset all Slash Commands. It may take up to an hour for global changes to take effect.');
   logger.syslog(chalk.redBright('Shutting down...'));
   process.exit(1);
@@ -301,7 +308,14 @@ const refreshSlashCommandData = (client) => {
 
     // Handle our different cmd config setups
     registerGlobalCommands(client);
-    if (TEST_SERVER_GUILD_ID) registerTestServerCommands(client);
+    
+    // Only register test server commands if TEST_SERVER_GUILD_ID is a valid snowflake (numeric string of 17-19 digits)
+    if (TEST_SERVER_GUILD_ID && /^\d{17,19}$/.test(TEST_SERVER_GUILD_ID)) {
+      registerTestServerCommands(client);
+    } else if (TEST_SERVER_GUILD_ID) {
+      logger.syserr(`Invalid TEST_SERVER_GUILD_ID: "${TEST_SERVER_GUILD_ID}". Must be a valid Discord server ID (snowflake).`);
+    }
+    
     logger.endLog(`Refreshing Application ${ chalk.white('(/)') } Commands.`);
   }
   catch (error) {

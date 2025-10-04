@@ -33,9 +33,19 @@ module.exports = (player) => {
     ] });
   });
 
-  player.events.on('playerError', (err) => {
+  player.events.on('playerError', (queue, error) => {
     logger.syserr('Music Player encountered unexpected error:');
-    logger.printErr(err);
+    logger.printErr(error);
+    
+    if (queue?.metadata?.channel) {
+      queue.metadata.channel.send({ embeds: [
+        {
+          color: colorResolver(),
+          title: 'Playback Error',
+          description: `Failed to play the current track. ${error?.message ? `\n\nError: ${error.message.slice(0, EMBED_DESCRIPTION_MAX_LENGTH - 100)}` : ''}`
+        }
+      ] }).catch(() => {});
+    }
   });
 
   player.events.on('audioTrackAdd', (queue, track) => {
