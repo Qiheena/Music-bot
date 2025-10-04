@@ -135,18 +135,20 @@ class PlayDLExtractor extends BaseExtractor {
 
   async streamFromPlatform(url, platform) {
     const timeout = 15000;
+    let timeoutHandle;
     
     const streamPromise = play.stream(url, {
       quality: 2,
       discordPlayerCompatibility: true
     });
     
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error(`${platform} stream timeout after ${timeout}ms`)), timeout)
-    );
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutHandle = setTimeout(() => reject(new Error(`${platform} stream timeout after ${timeout}ms`)), timeout);
+    });
     
     try {
       const streamData = await Promise.race([streamPromise, timeoutPromise]);
+      clearTimeout(timeoutHandle);
       
       if (!streamData || !streamData.stream) {
         throw new Error(`Failed to get stream data from ${platform}`);
@@ -155,6 +157,7 @@ class PlayDLExtractor extends BaseExtractor {
       logger.debug(`[PlayDLExtractor] ✓ ${platform} stream created successfully`);
       return { streamData, platform };
     } catch (error) {
+      clearTimeout(timeoutHandle);
       logger.debug(`[PlayDLExtractor] ✗ ${platform} stream failed:`, error.message);
       throw error;
     }
@@ -165,34 +168,60 @@ class PlayDLExtractor extends BaseExtractor {
       logger.debug('[PlayDLExtractor] Attempting to stream:', info.url);
       logger.debug('[PlayDLExtractor] Track title:', info.title);
       
-      const searchQuery = info.title || info.url;
       const streamAttempts = [];
       
       if (info.url.includes('youtube.com') || info.url.includes('youtu.be')) {
-        logger.debug('[PlayDLExtractor] Direct YouTube URL, streaming immediately...');
+        logger.debug('[PlayDLExtractor] Direct YouTube URL detected, streaming...');
         const streamData = await this.streamFromPlatform(info.url, 'YouTube');
         return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
       }
       
-      logger.debug('[PlayDLExtractor] Parallel search starting on multiple platforms...');
-      
-      const youtubeSearch = play.search(searchQuery, { limit: 1, source: { youtube: 'video' } })
-        .then(results => {
-          if (results && results.length > 0) {
-            logger.debug('[PlayDLExtractor] YouTube found:', results[0].title);
-            return this.streamFromPlatform(results[0].url, 'YouTube');
-          }
-          throw new Error('YouTube search returned no results');
-        })
-        .catch(err => {
-          logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
-          throw err;
-        });
-      
-      streamAttempts.push(youtubeSearch);
-      
-      const soundcloudValidate = play.so_validate(searchQuery);
-      if (soundcloudValidate === 'search') {
+      const soundcloudValidate = play.so_validate(info.url);
+      if (soundcloudValidate === 'track') {
+        logger.debug('[PlayDLExtractor] Direct SoundCloud URL detected, trying parallel approach...');
+        
+        const scDirectStream = this.streamFromPlatform(info.url, 'SoundCloud')
+          .catch(err => {
+            logger.debug('[PlayDLExtractor] SoundCloud direct stream failed:', err.message);
+            throw err;
+          });
+        streamAttempts.push(scDirectStream);
+        
+        const ytSearchStream = play.search(info.title, { limit: 1, source: { youtube: 'video' } })
+          .then(results => {
+            if (results && results.length > 0) {
+              logger.debug('[PlayDLExtractor] YouTube search found:', results[0].title);
+              return this.streamFromPlatform(results[0].url, 'YouTube');
+            }
+            throw new Error('YouTube search returned no results');
+          })
+          .catch(err => {
+            logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
+            throw err;
+          });
+        streamAttempts.push(ytSearchStream);
+        
+        logger.debug('[PlayDLExtractor] Racing SoundCloud direct + YouTube search...');
+      } 
+      else {
+        logger.debug('[PlayDLExtractor] No direct URL, parallel search on all platforms...');
+        
+        const searchQuery = info.title || info.url;
+        
+        const youtubeSearch = play.search(searchQuery, { limit: 1, source: { youtube: 'video' } })
+          .then(results => {
+            if (results && results.length > 0) {
+              logger.debug('[PlayDLExtractor] YouTube found:', results[0].title);
+              return this.streamFromPlatform(results[0].url, 'YouTube');
+            }
+            throw new Error('YouTube search returned no results');
+          })
+          .catch(err => {
+            logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
+            throw err;
+          });
+        streamAttempts.push(youtubeSearch);
+        
         const soundcloudSearch = play.search(searchQuery, { limit: 1, source: { soundcloud: 'tracks' } })
           .then(results => {
             if (results && results.length > 0) {
@@ -205,7 +234,6 @@ class PlayDLExtractor extends BaseExtractor {
             logger.debug('[PlayDLExtractor] SoundCloud search/stream failed:', err.message);
             throw err;
           });
-        
         streamAttempts.push(soundcloudSearch);
       }
       
@@ -213,9 +241,11 @@ class PlayDLExtractor extends BaseExtractor {
       
       const winner = await Promise.any(streamAttempts).catch(aggregateError => {
         logger.syserr('[PlayDLExtractor] All platforms failed!');
-        aggregateError.errors.forEach((err, i) => {
-          logger.syserr(`  Platform ${i + 1}:`, err.message);
-        });
+        if (aggregateError.errors) {
+          aggregateError.errors.forEach((err, i) => {
+            logger.syserr(`  Platform ${i + 1}:`, err.message);
+          });
+        }
         throw new Error('⚠️ Could not stream from any platform. All sources failed or timed out.');
       });
       
