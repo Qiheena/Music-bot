@@ -187,26 +187,41 @@ class PlayDLExtractor extends BaseExtractor {
           });
         streamAttempts.push(scDirectStream);
         
-        const ytSearchStream = play.search(info.title, { limit: 1, source: { youtube: 'video' } })
-          .then(results => {
-            if (results && results.length > 0) {
-              logger.debug('[PlayDLExtractor] YouTube search found:', results[0].title);
-              return this.streamFromPlatform(results[0].url, 'YouTube');
-            }
-            throw new Error('YouTube search returned no results');
-          })
-          .catch(err => {
-            logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
-            throw err;
-          });
-        streamAttempts.push(ytSearchStream);
+        const searchQuery = info.title || info.author || 'music';
+        if (searchQuery && searchQuery.trim() && searchQuery !== 'music') {
+          const ytSearchStream = play.search(searchQuery, { limit: 1, source: { youtube: 'video' } })
+            .then(results => {
+              if (results && results.length > 0) {
+                logger.debug('[PlayDLExtractor] YouTube search found:', results[0].title);
+                return this.streamFromPlatform(results[0].url, 'YouTube');
+              }
+              throw new Error('YouTube search returned no results');
+            })
+            .catch(err => {
+              logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
+              throw err;
+            });
+          streamAttempts.push(ytSearchStream);
+        }
         
         logger.debug('[PlayDLExtractor] Racing SoundCloud direct + YouTube search...');
       } 
       else {
         logger.debug('[PlayDLExtractor] No direct URL, parallel search on all platforms...');
         
-        const searchQuery = info.title || info.url;
+        let searchQuery = info.title || info.url || '';
+        
+        if (!searchQuery || !searchQuery.trim()) {
+          logger.syserr('[PlayDLExtractor] Empty search query! Attempting to extract from metadata...');
+          searchQuery = info.author || info.description || '';
+          
+          if (!searchQuery || !searchQuery.trim()) {
+            throw new Error('Cannot search with empty query - no title, author, or description available');
+          }
+        }
+        
+        searchQuery = searchQuery.trim();
+        logger.debug('[PlayDLExtractor] Search query:', searchQuery);
         
         const youtubeSearch = play.search(searchQuery, { limit: 1, source: { youtube: 'video' } })
           .then(results => {
@@ -235,6 +250,20 @@ class PlayDLExtractor extends BaseExtractor {
             throw err;
           });
         streamAttempts.push(soundcloudSearch);
+        
+        const deezerSearch = play.search(searchQuery, { limit: 1, source: { deezer: 'track' } })
+          .then(results => {
+            if (results && results.length > 0) {
+              logger.debug('[PlayDLExtractor] Deezer found:', results[0].title);
+              return this.streamFromPlatform(results[0].url, 'Deezer');
+            }
+            throw new Error('Deezer search returned no results');
+          })
+          .catch(err => {
+            logger.debug('[PlayDLExtractor] Deezer search/stream failed:', err.message);
+            throw err;
+          });
+        streamAttempts.push(deezerSearch);
       }
       
       logger.debug(`[PlayDLExtractor] Racing ${streamAttempts.length} platform(s)...`);
