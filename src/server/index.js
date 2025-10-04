@@ -43,5 +43,6 @@ app.use(express.static('public'));
 // Actively listen for requests to our API/backend
 app.listen(
   PORT,
+  "0.0.0.0",
   logger.success(chalk.yellow.bold(`API running in ${ NODE_ENV }-mode on port ${ PORT }`))
 );
