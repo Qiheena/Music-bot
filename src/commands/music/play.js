@@ -19,7 +19,7 @@ module.exports = new ChatInputCommand({
       {
         name: 'query',
         type: ApplicationCommandOptionType.String,
-        autocomplete: true,
+        autocomplete: false,
         description: 'The music to search/query',
         required: true
       },
@@ -54,7 +54,9 @@ module.exports = new ChatInputCommand({
     const channel = member.voice?.channel;
 
     // Let's defer the interaction as things can take time to process
-    await interaction.deferReply();
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply();
+    }
 
     try {
       // Check is valid
