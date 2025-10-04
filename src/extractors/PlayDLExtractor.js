@@ -227,20 +227,6 @@ class PlayDLExtractor extends BaseExtractor {
             throw err;
           });
         streamAttempts.push(soundcloudSearch);
-        
-        const deezerSearch = play.search(searchQuery, { limit: 1, source: { deezer: 'track' } })
-          .then(results => {
-            if (results && results.length > 0) {
-              logger.debug('[PlayDLExtractor] Deezer found:', results[0].title);
-              return this.streamFromPlatform(results[0].url, 'Deezer');
-            }
-            throw new Error('Deezer search returned no results');
-          })
-          .catch(err => {
-            logger.debug('[PlayDLExtractor] Deezer search/stream failed:', err.message);
-            throw err;
-          });
-        streamAttempts.push(deezerSearch);
       } 
       else {
         const soundcloudValidate = play.so_validate(info.url);
@@ -273,7 +259,7 @@ class PlayDLExtractor extends BaseExtractor {
           
           logger.debug('[PlayDLExtractor] Racing SoundCloud direct + YouTube search...');
         } else {
-          logger.debug('[PlayDLExtractor] Fallback: No direct URL or multi-platform search, trying generic search...');
+          logger.debug('[PlayDLExtractor] Fallback: No direct URL or multi-platform search, trying YouTube...');
           
           let searchQuery = info.title || info.url || '';
           
@@ -287,49 +273,21 @@ class PlayDLExtractor extends BaseExtractor {
           }
           
           searchQuery = searchQuery.trim();
-          logger.debug('[PlayDLExtractor] Search query:', searchQuery);
+          logger.debug('[PlayDLExtractor] Fallback search query:', searchQuery);
           
           const youtubeSearch = play.search(searchQuery, { limit: 1, source: { youtube: 'video' } })
             .then(results => {
               if (results && results.length > 0) {
-                logger.debug('[PlayDLExtractor] YouTube found:', results[0].title);
+                logger.debug('[PlayDLExtractor] YouTube found for fallback:', results[0].title);
                 return this.streamFromPlatform(results[0].url, 'YouTube');
               }
               throw new Error('YouTube search returned no results');
             })
             .catch(err => {
-              logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
+              logger.debug('[PlayDLExtractor] YouTube fallback search/stream failed:', err.message);
               throw err;
             });
           streamAttempts.push(youtubeSearch);
-          
-          const soundcloudSearch = play.search(searchQuery, { limit: 1, source: { soundcloud: 'tracks' } })
-            .then(results => {
-              if (results && results.length > 0) {
-                logger.debug('[PlayDLExtractor] SoundCloud found:', results[0].title);
-                return this.streamFromPlatform(results[0].url, 'SoundCloud');
-              }
-              throw new Error('SoundCloud search returned no results');
-            })
-            .catch(err => {
-              logger.debug('[PlayDLExtractor] SoundCloud search/stream failed:', err.message);
-              throw err;
-            });
-          streamAttempts.push(soundcloudSearch);
-          
-          const deezerSearch = play.search(searchQuery, { limit: 1, source: { deezer: 'track' } })
-            .then(results => {
-              if (results && results.length > 0) {
-                logger.debug('[PlayDLExtractor] Deezer found:', results[0].title);
-                return this.streamFromPlatform(results[0].url, 'Deezer');
-              }
-              throw new Error('Deezer search returned no results');
-            })
-            .catch(err => {
-              logger.debug('[PlayDLExtractor] Deezer search/stream failed:', err.message);
-              throw err;
-            });
-          streamAttempts.push(deezerSearch);
         }
       }
       

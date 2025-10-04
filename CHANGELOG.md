@@ -1,3 +1,27 @@
+## [1.3.1] (2025-10-04)
+
+
+### Bug Fixes
+
+* **Deezer Disabled:** Disabled Deezer extractor due to missing decryption key requirement - was causing all fallback streams to fail
+* **Empty Query Fix:** Fixed critical issue where fallback streaming received empty queries, now properly extracts title from track metadata
+* **Multi-Platform Racing:** Removed non-functional Deezer from platform racing, now uses YouTube + SoundCloud only
+* **SoundCloud Fallback:** Improved fallback logic when SoundCloud URLs fail to stream - now properly searches YouTube with track title
+* **Queue Display:** Fixed CombinedError validation issue with empty thumbnail URLs in queue embeds
+
+### Performance Improvements
+
+* **Reduced Failures:** Removing broken Deezer integration significantly reduces stream failure rate
+* **Better Fallbacks:** Enhanced metadata extraction ensures fallback searches have valid queries
+* **Faster Recovery:** Streamlined platform racing without failed Deezer attempts
+
+### Code Improvements
+
+* Simplified stream() method by removing Deezer search attempts
+* Enhanced empty query validation with multiple fallback fields (title → author → description)
+* Improved logging for fallback streaming scenarios
+* Better error handling for invalid or missing track metadata
+
 ## [1.3.0] (2025-10-04)
 
 
