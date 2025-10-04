@@ -26,19 +26,23 @@ const requireInitializeSessionConditions = (interaction) => {
 
   // Can't see channel
   if (!channel.viewable) {
-    interaction.reply({
+    const ctx = {
       content: `${ emojis.error } ${ member }, I don't have permission to see your voice channel (\`${ emojis.success } View Channel\`) - this command has been cancelled`,
       ephemeral: true
-    });
+    };
+    if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
+    else interaction.reply(ctx);
     return false;
   }
 
   // Join channel
   if (!channel.joinable) {
-    interaction.reply({
+    const ctx = {
       content: `${ emojis.error } ${ member }, I don't have permission to join your voice channel (\`${ emojis.success } Connect \`) - this command has been cancelled`,
       ephemeral: true
-    });
+    };
+    if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
+    else interaction.reply(ctx);
     return false;
   }
 
@@ -48,10 +52,12 @@ const requireInitializeSessionConditions = (interaction) => {
     channel.full
     && !channel.members.some((m) => m.id === interaction.client.user.id)
   ) {
-    interaction.reply({
+    const ctx = {
       content: `${ emojis.error } ${ member }, your voice channel is currently full - this command has been cancelled`,
       ephemeral: true
-    });
+    };
+    if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
+    else interaction.reply(ctx);
     return false;
   }
 
@@ -66,7 +72,7 @@ const requireDJ = (interaction) => {
   if (djRoleIds.length > 0) {
     const memberDJRole = member._roles.some((rId) => djRoleIds.includes(rId));
     if (!memberDJRole) {
-      interaction.reply({
+      const ctx = {
         content: `${ emojis.error } ${ member }, you need ${
           djRoleIds.length === 1
             ? 'one of the DJ roles to use this command: ' + djRoleIds.map((e) => `<@&${ e }>`).join(', ')
@@ -74,16 +80,20 @@ const requireDJ = (interaction) => {
         }`,
         disableMentions: true,
         ephemeral: true
-      });
+      };
+      if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
+      else interaction.reply(ctx);
       return false;
     }
   }
   // Restricted for admins until DJ roles are configured
   else if (member.permLevel < 2) {
-    interaction.reply({
+    const ctx = {
       content: `${ emojis.error } ${ member }, you don't have the required permission level to use this command. It is reserved for Administrators and up until **\`/dj-roles\`** are configured - this command has been cancelled`,
       ephemeral: true
-    });
+    };
+    if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
+    else interaction.reply(ctx);
     return false;
   }
 
@@ -106,10 +116,12 @@ const requireSessionConditions = (
   // Check voice channel requirement
   const channel = member.voice?.channel;
   if (!channel) {
-    interaction.reply({
+    const ctx = {
       content: `${ emojis.error } ${ member }, please join/connect to a voice channel first, and try again.`,
       ephemeral: true
-    });
+    };
+    if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
+    else interaction.reply(ctx);
     return false;
   }
 
@@ -122,10 +134,12 @@ const requireSessionConditions = (
   // when playing/applicable
   const queue = useQueue(guild.id);
   if (queue && queue.channel.id !== channel.id) {
-    interaction.reply({
+    const ctx = {
       content: `${ emojis.error } ${ member }, I'm already playing in <#${ queue.channel.id }> - this command has been cancelled`,
       ephemeral: true
-    });
+    };
+    if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
+    else interaction.reply(ctx);
     return false;
   }
 
@@ -143,10 +157,12 @@ const requireSessionConditions = (
     requireVoiceSession === true
     && !usePlayer(guild.id)?.queue
   ) {
-    interaction.reply({
+    const ctx = {
       content: `${ emojis.error } ${ member }, no music is currently being played - \`/play\` something first to initialize a session`,
       ephemeral: true
-    });
+    };
+    if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
+    else interaction.reply(ctx);
     return false;
   }
 

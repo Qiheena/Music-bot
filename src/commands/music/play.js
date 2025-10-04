@@ -38,6 +38,9 @@ module.exports = new ChatInputCommand({
     const query = interaction.options.getString('query', true); // we need input/query to play
     const attachment = interaction.options.getAttachment('file');
 
+    // Defer immediately to prevent interaction timeout
+    await interaction.deferReply();
+
     // Check state
     if (!requireSessionConditions(interaction, false, true, false)) return;
 
@@ -45,18 +48,13 @@ module.exports = new ChatInputCommand({
     if (attachment) {
       const contentIsAllowed = isAllowedContentType(ALLOWED_CONTENT_TYPE, attachment?.contentType ?? 'unknown');
       if (!contentIsAllowed.strict) {
-        interaction.reply({ content: `${ emojis.error } ${ member }, file rejected. Content type is not **\`${ ALLOWED_CONTENT_TYPE }\`**, received **\`${ attachment.contentType ?? 'unknown' }\`** instead.` });
+        interaction.editReply({ content: `${ emojis.error } ${ member }, file rejected. Content type is not **\`${ ALLOWED_CONTENT_TYPE }\`**, received **\`${ attachment.contentType ?? 'unknown' }\`** instead.` });
         return;
       }
     }
 
     // Ok, safe to access voice channel and initialize
     const channel = member.voice?.channel;
-
-    // Let's defer the interaction as things can take time to process
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.deferReply();
-    }
 
     try {
       // Check is valid
