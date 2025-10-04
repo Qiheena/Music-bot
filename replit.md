@@ -64,7 +64,7 @@ Preferred communication style: Simple, everyday language.
 5. Responses sent via Discord interaction replies or embeds
 
 ## Data Persistence
-- **Database File**: `mirasaki-music-bot.db` (LokiJS)
+- **Database File**: `QIHeena-music-bot.db` (LokiJS)
 - **Collections**: `guilds` collection stores per-guild settings
 - **Auto-save**: Database saves every 3600 seconds (1 hour)
 - **Schema**: Guild documents include settings like volume, repeat mode, DJ roles, music channels, cooldowns
@@ -104,7 +104,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Database
 - **LokiJS**: In-memory document database with filesystem persistence
-- **Storage**: Local file (`mirasaki-music-bot.db`)
+- **Storage**: Local file (`QIHeena-music-bot.db`)
 - **Adapter**: LokiFsAdapter for filesystem operations
 
 ## Web Server
