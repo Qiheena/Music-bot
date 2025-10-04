@@ -13,7 +13,7 @@ Preferred communication style: Simple, everyday language.
 ## Application Framework
 - **Runtime**: Node.js (v20.0.0 - v22.0.0)
 - **Bot Framework**: Discord.js v14 for Discord API interactions
-- **Music Engine**: discord-player v6 for audio playback management
+- **Music Engine**: discord-player v7 for audio playback management
 - **Database**: LokiJS in-memory document database with filesystem persistence
 
 **Design Rationale**: Discord.js provides robust Discord API integration, while discord-player abstracts complex audio streaming logic. LokiJS was chosen for its lightweight, file-based persistence without requiring external database services, making deployment simpler.
@@ -91,13 +91,14 @@ Preferred communication style: Simple, everyday language.
 - **Gateway Intents**: Guilds, GuildVoiceStates, GuildMessages
 
 ## Music Services
-- **discord-player v6**: Music playback framework with queue management
-- **@discord-player/extractor**: Platform extractors for:
+- **discord-player v7.1.0**: Music playback framework with queue management (upgraded from v6)
+- **@discord-player/extractor v7.1.0**: Platform extractors (upgraded from v4.5.1) using DefaultExtractors:
   - SoundCloud
   - Apple Music
   - Vimeo
   - ReverbNation
   - Discord Attachments
+- **discord-player-deezer**: Deezer music source extractor (new)
 - **mediaplex**: Audio streaming utility
 
 **Note**: YouTube and Spotify support were removed (as of v1.2.2)
@@ -135,7 +136,17 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## October 4, 2025
+## October 4, 2025 (Latest)
+- **Major Upgrade**: Upgraded discord-player from v6.7.1 to v7.1.0 to fix SoundCloud streaming issues
+- **Extractor Upgrade**: Upgraded @discord-player/extractor from v4.5.1 to v7.1.0 with DefaultExtractors support
+- **Deezer Integration**: Added discord-player-deezer package for Deezer music source support
+- **Extractor Registration**: Updated src/index.js to use DefaultExtractors with config-based filtering
+- **Lyrics Command**: Migrated lyrics command to use new player.lyrics API with proper null guards
+- **PlayDL Extractor Fix**: Fixed PlayDLExtractor compatibility with v7 by removing deprecated this.context.Util usage
+- **Configuration**: Added deezer option to config.js plugins section
+- **Fallback Streaming**: Fixed fallback YouTube search functionality for when primary extractors fail
+
+## October 4, 2025 (Earlier)
 - **Bug Fix**: Changed `skipOnNoStream` from `true` to `false` in play command to prevent songs from being skipped immediately when audio stream extraction takes time
 - **Port Update**: Updated default webserver port from 3000 to 5000 for Replit compatibility
 - **Configuration Files**: Added `.env.example` and `config.example.js` files for easier setup

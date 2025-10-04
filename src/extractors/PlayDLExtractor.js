@@ -40,7 +40,7 @@ class PlayDLExtractor extends BaseExtractor {
         searchResult = [{
           url: info.video_details.url,
           title: info.video_details.title,
-          duration: this.context.Util.buildTimeCode(this.context.Util.parseMS(info.video_details.durationInSec * 1000)),
+          duration: info.video_details.durationInSec * 1000,
           thumbnail: info.video_details.thumbnails[0]?.url,
           author: info.video_details.channel.name,
           views: info.video_details.views,
@@ -60,9 +60,9 @@ class PlayDLExtractor extends BaseExtractor {
         searchResult = searched.map(video => ({
           url: video.url,
           title: video.title,
-          duration: this.context.Util.buildTimeCode(this.context.Util.parseMS(video.durationInSec * 1000)),
+          duration: video.durationInSec * 1000,
           thumbnail: video.thumbnails[0]?.url,
-          author: video.channel.name,
+          author: video.channel ? video.channel.name : 'Unknown',
           views: video.views,
           source: 'youtube'
         }));
