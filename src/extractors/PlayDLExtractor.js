@@ -12,11 +12,12 @@ class PlayDLExtractor extends BaseExtractor {
   async validate(query, type) {
     if (typeof query !== 'string') return false;
     
-    if (query.includes('youtube.com') || query.includes('youtu.be')) {
-      return true;
+    // Skip SoundCloud URLs - let the official SoundCloudExtractor handle them
+    if (query.includes('soundcloud.com')) {
+      return false;
     }
     
-    if (query.includes('soundcloud.com')) {
+    if (query.includes('youtube.com') || query.includes('youtu.be')) {
       return true;
     }
     
@@ -47,19 +48,6 @@ class PlayDLExtractor extends BaseExtractor {
         }];
         logger.debug('[PlayDLExtractor] YouTube info fetched:', info.video_details.title);
       } 
-      else if (query.includes('soundcloud.com')) {
-        logger.debug('[PlayDLExtractor] SoundCloud URL detected, fetching info...');
-        const info = await play.soundcloud(query);
-        searchResult = [{
-          url: info.url,
-          title: info.name,
-          duration: this.context.Util.buildTimeCode(this.context.Util.parseMS(info.durationInMs)),
-          thumbnail: info.thumbnail,
-          author: info.user.name,
-          source: 'soundcloud'
-        }];
-        logger.debug('[PlayDLExtractor] SoundCloud info fetched:', info.name);
-      }
       else {
         logger.debug('[PlayDLExtractor] Searching YouTube for:', query);
         const searched = await play.search(query, { limit: 10, source: { youtube: 'video' } });
