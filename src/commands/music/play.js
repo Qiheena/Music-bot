@@ -14,7 +14,7 @@ const player = useMainPlayer();
 module.exports = new ChatInputCommand({
   global: true,
   data: {
-    description: 'Play a song. Query SoundCloud, search Vimeo, provide a direct link, etc.',
+    description: 'Play a song. Search YouTube, provide a link, or upload an audio file.',
     options: [
       {
         name: 'query',
