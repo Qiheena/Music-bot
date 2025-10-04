@@ -8,11 +8,7 @@ const {
 } = require('discord.js');
 const { Player } = require('discord-player');
 const {
-  SoundCloudExtractor,
-  AttachmentExtractor,
-  AppleMusicExtractor,
-  VimeoExtractor,
-  ReverbnationExtractor
+  DefaultExtractors
 } = require('@discord-player/extractor');
 require('./server/webserver');
 // Argv
@@ -285,12 +281,30 @@ if (modeArg && modeArg.endsWith('test')) process.exit(0);
     logger.info('PlayDL extractor registered for YouTube and SoundCloud support');
   }
   
-  // If you don't want to use all of the extractors and register only the required ones manually, use
-  if (clientConfig.plugins.soundCloud === true) await player.extractors.register(SoundCloudExtractor, {});
-  if (clientConfig.plugins.fileAttachments === true) await player.extractors.register(AttachmentExtractor, {});
-  if (clientConfig.plugins.appleMusic === true) await player.extractors.register(AppleMusicExtractor, {});
-  if (clientConfig.plugins.vimeo === true) await player.extractors.register(VimeoExtractor, {});
-  if (clientConfig.plugins.reverbNation === true) await player.extractors.register(ReverbnationExtractor, {});
+  // Load default extractors based on config
+  const extractorsToLoad = DefaultExtractors.filter((extractor) => {
+    const name = extractor.name || '';
+    if (name.includes('SoundCloud') && !clientConfig.plugins.soundCloud) return false;
+    if (name.includes('AppleMusic') && !clientConfig.plugins.appleMusic) return false;
+    if (name.includes('Vimeo') && !clientConfig.plugins.vimeo) return false;
+    if (name.includes('Reverbnation') && !clientConfig.plugins.reverbNation) return false;
+    if (name.includes('Attachment') && !clientConfig.plugins.fileAttachments) return false;
+    return true;
+  });
+  
+  await player.extractors.loadMulti(extractorsToLoad);
+  logger.info('Default extractors loaded (SoundCloud, Apple Music, Vimeo, Reverbnation, Attachments)');
+  
+  // Register Deezer extractor if enabled
+  if (clientConfig.plugins.deezer === true) {
+    try {
+      const { DeezerExtractor } = require('discord-player-deezer');
+      await player.extractors.register(DeezerExtractor, {});
+      logger.info('Deezer extractor registered successfully (Note: Decryption key needed for streaming)');
+    } catch (err) {
+      logger.syserr('Failed to load Deezer extractor:', err.message);
+    }
+  }
 
   // Logging in to our client
   client.login(DISCORD_BOT_TOKEN);

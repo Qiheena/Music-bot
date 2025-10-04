@@ -1,11 +1,9 @@
 const { ApplicationCommandOptionType, EmbedBuilder } = require('discord.js');
 const { ChatInputCommand } = require('../../classes/Commands');
-const { lyricsExtractor: lyricsExtractorSuper } = require('@discord-player/extractor');
-const { useQueue } = require('discord-player');
+const { useMainPlayer, useQueue } = require('discord-player');
 const { colorResolver } = require('../../util');
 const { EMBED_DESCRIPTION_MAX_LENGTH } = require('../../constants');
 const { requireSessionConditions } = require('../../modules/music');
-const lyricsExtractor = lyricsExtractorSuper();
 
 module.exports = new ChatInputCommand({
   global: true,
@@ -51,41 +49,38 @@ module.exports = new ChatInputCommand({
     query &&= query.toLowerCase();
 
     try {
-      const res = await lyricsExtractor
-        .search(query)
-        .catch(() => null);
+      const player = useMainPlayer();
+      if (!player || !player.lyrics) {
+        interaction.editReply(`${ emojis.error } ${ member }, lyrics service is not available - this command has been cancelled`);
+        return;
+      }
+      
+      const searchResult = await player.lyrics.search({ q: query }).catch(() => null);
 
-      if (!res) {
+      if (!searchResult || !searchResult.length) {
         interaction.editReply(`${ emojis.error } ${ member }, could not find lyrics for **\`${ query }\`**, please try a different query`);
         return;
       }
 
-      const {
-        title,
-        fullTitle,
-        thumbnail,
-        image,
-        url,
-        artist,
-        lyrics
-      } = res;
+      const lyrics = searchResult[0];
+      const plainLyrics = lyrics.plainLyrics;
 
-      let description = lyrics;
+      let description = plainLyrics;
       if (description && description.length > EMBED_DESCRIPTION_MAX_LENGTH) description = description.slice(0, EMBED_DESCRIPTION_MAX_LENGTH - 3) + '...';
 
       const lyricsEmbed = new EmbedBuilder()
         .setColor(colorResolver())
-        .setTitle(title ?? 'Unknown')
+        .setTitle(lyrics.trackName ?? 'Unknown')
         .setAuthor({
-          name: artist.name ?? 'Unknown',
-          url: artist.url ?? null,
-          iconURL: artist.image ?? null
+          name: lyrics.artistName ?? 'Unknown',
+          url: null,
+          iconURL: null
         })
         .setDescription(description ?? 'Instrumental')
-        .setURL(url);
+        .setURL(lyrics.url ?? null);
 
-      if (image || thumbnail) lyricsEmbed.setImage(image ?? thumbnail);
-      if (fullTitle) lyricsEmbed.setFooter({ text: fullTitle });
+      if (lyrics.albumArt) lyricsEmbed.setThumbnail(lyrics.albumArt);
+      if (lyrics.trackName) lyricsEmbed.setFooter({ text: `${lyrics.artistName} - ${lyrics.trackName}` });
 
       // Feedback
       await interaction.editReply({ embeds: [ lyricsEmbed ] });
