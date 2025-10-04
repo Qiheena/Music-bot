@@ -278,6 +278,13 @@ if (USE_API === 'true') require('./server/');
 if (modeArg && modeArg.endsWith('test')) process.exit(0);
 
 (async () => {
+  // Register custom play-dl extractor first for better priority
+  if (clientConfig.plugins.playDL === true) {
+    const PlayDLExtractor = require('./extractors/PlayDLExtractor');
+    await player.extractors.register(PlayDLExtractor, {});
+    logger.info('PlayDL extractor registered for YouTube and SoundCloud support');
+  }
+  
   // If you don't want to use all of the extractors and register only the required ones manually, use
   if (clientConfig.plugins.soundCloud === true) await player.extractors.register(SoundCloudExtractor, {});
   if (clientConfig.plugins.fileAttachments === true) await player.extractors.register(AttachmentExtractor, {});
