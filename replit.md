@@ -141,3 +141,6 @@ Preferred communication style: Simple, everyday language.
 - **Configuration Files**: Added `.env.example` and `config.example.js` files for easier setup
 - **Docker Update**: Updated Dockerfile to use Node 20-slim (matching package.json requirements) and expose port 5000
 - **Replit Compatibility**: Updated webserver to bind to 0.0.0.0 for proper operation in Replit environment
+- **Bug Fix**: Fixed TypeError when guild is null in interaction handler by adding null check before accessing guild properties
+- **Database Reset**: Reset guild settings database to ensure correct 120-second (2 minutes) leave-on-empty and leave-on-end cooldown values
+- **Branding Update**: Migrated all "@mirasaki/logger" references to "@QIHeena/logger" throughout entire codebase, including vendor folder, package files, and documentation
