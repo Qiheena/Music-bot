@@ -59,14 +59,16 @@ module.exports = new ChatInputCommand({
 
     try {
       // Check is valid
+      logger.info('[Play Command] Starting search for:', query);
       const searchResult = await player
         .search(attachment?.url ?? query, { 
           requestedBy: interaction.user,
-          searchEngine: 'playdl',
+          searchEngine: 'com.playernix.playdl',
           guildId: guild.id
         })
         .catch((err) => {
           logger.syserr('[Play Command] Search failed:', err);
+          logger.printErr(err);
           return null;
         });
       if (!searchResult || !searchResult.hasTracks()) {
