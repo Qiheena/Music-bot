@@ -37,12 +37,43 @@ module.exports = (player) => {
     logger.syserr('Music Player encountered unexpected error:');
     logger.printErr(error);
     
+    const currentTrack = queue?.currentTrack;
+    const errorMsg = error?.message || error?.cause?.message || error?.data?.message || 'Unknown error';
+    const errorData = error?.data || error?.cause?.data || {};
+    const errorResource = error?.resource || error?.cause?.resource || '';
+    
+    logger.debug(`playerError full context:`, {
+      message: errorMsg,
+      track: currentTrack?.url,
+      trackTitle: currentTrack?.title,
+      data: errorData,
+      resource: errorResource,
+      stack: error?.stack?.split('\n').slice(0, 3)
+    });
+    
     if (queue?.metadata?.channel) {
+      const maxLength = Math.max(EMBED_DESCRIPTION_MAX_LENGTH - 350, 500);
+      let description = `Failed to play: **${currentTrack?.title || 'current track'}**\n\n`;
+      
+      const errorLower = errorMsg.toLowerCase();
+      if (errorLower.includes('stream') || errorLower.includes('extract')) {
+        description += '🔧 **Stream extraction failed** - The audio source may be unavailable, region-restricted, or private.\n\n';
+        if (errorData.statusCode) description += `Status: ${errorData.statusCode}\n`;
+        description += '💡 **Try:** Search for the song again or use a different platform';
+      } else if (errorLower.includes('network') || errorLower.includes('timeout') || errorLower.includes('econnrefused')) {
+        description += '🌐 **Network issue** - Connection to the audio source failed.\n\n';
+        description += '💡 **Try:** Wait a moment and try playing the song again';
+      } else {
+        const safeErrorMsg = errorMsg.slice(0, maxLength);
+        description += `⚠️ **Error:** ${safeErrorMsg}\n\n`;
+        description += '💡 **Tip:** This track may not be available. Try a different song or source';
+      }
+      
       queue.metadata.channel.send({ embeds: [
         {
           color: colorResolver(),
-          title: 'Playback Error',
-          description: `Failed to play the current track. ${error?.message ? `\n\nError: ${error.message.slice(0, EMBED_DESCRIPTION_MAX_LENGTH - 100)}` : ''}`
+          title: '❌ Playback Error',
+          description: description.slice(0, EMBED_DESCRIPTION_MAX_LENGTH)
         }
       ] }).catch(() => {});
     }
