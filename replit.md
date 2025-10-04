@@ -39,6 +39,11 @@ Preferred communication style: Simple, everyday language.
 
 ## Audio Processing
 - **Extractors**: Platform-specific (SoundCloud, Apple Music, Vimeo, ReverbNation, attachments, Deezer, YouTube via PlayDL)
+- **Multi-Platform Racing**: Parallel streaming from YouTube and SoundCloud with intelligent priority-based selection
+- **Stream Priority**: YouTube (100+ priority) heavily favored over SoundCloud (50+ priority)
+- **Fast Playback**: Plays first available stream with 500ms grace period for higher priority sources
+- **Timeout**: 10-second timeout per platform for faster response
+- **Search Accuracy**: Enhanced YouTube ranking algorithm considering Topic channels, official audio, VEVO, verified channels, exact matches, quality markers, and view count
 - **Filters**: Support for audio filters and equalizer presets
 - **FFmpeg**: Used for audio processing and format conversion
 
