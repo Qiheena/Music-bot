@@ -20,7 +20,7 @@ module.exports = new ChatInputCommand({
       {
         name: 'query',
         type: ApplicationCommandOptionType.String,
-        autocomplete: false,
+        autocomplete: true,
         description: 'The music to search/query',
         required: true
       },
@@ -59,11 +59,11 @@ module.exports = new ChatInputCommand({
 
     try {
       // Check is valid
-      logger.info('[Play Command] Starting search for:', query);
+      const searchQuery = attachment?.url ?? query;
+      logger.info('[Play Command] Starting search for:', searchQuery);
       const searchResult = await player
-        .search(attachment?.url ?? query, { 
+        .search(searchQuery, { 
           requestedBy: interaction.user,
-          searchEngine: 'com.playernix.playdl',
           guildId: guild.id
         })
         .catch((err) => {
