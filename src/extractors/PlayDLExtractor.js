@@ -1,5 +1,6 @@
 const { BaseExtractor } = require('discord-player');
 const play = require('play-dl');
+const logger = require('@mirasaki/logger');
 
 class PlayDLExtractor extends BaseExtractor {
   static identifier = 'com.playernix.playdl';
@@ -29,11 +30,11 @@ class PlayDLExtractor extends BaseExtractor {
 
   async handle(query, context) {
     try {
-      console.log('[PlayDLExtractor] Handling query:', query);
+      logger.debug('[PlayDLExtractor] Handling query:', query);
       let searchResult;
       
       if (query.includes('youtube.com') || query.includes('youtu.be')) {
-        console.log('[PlayDLExtractor] YouTube URL detected, fetching info...');
+        logger.debug('[PlayDLExtractor] YouTube URL detected, fetching info...');
         const info = await play.video_basic_info(query);
         searchResult = [{
           url: info.video_details.url,
@@ -44,10 +45,10 @@ class PlayDLExtractor extends BaseExtractor {
           views: info.video_details.views,
           source: 'youtube'
         }];
-        console.log('[PlayDLExtractor] YouTube info fetched:', info.video_details.title);
+        logger.debug('[PlayDLExtractor] YouTube info fetched:', info.video_details.title);
       } 
       else if (query.includes('soundcloud.com')) {
-        console.log('[PlayDLExtractor] SoundCloud URL detected, fetching info...');
+        logger.debug('[PlayDLExtractor] SoundCloud URL detected, fetching info...');
         const info = await play.soundcloud(query);
         searchResult = [{
           url: info.url,
@@ -57,14 +58,14 @@ class PlayDLExtractor extends BaseExtractor {
           author: info.user.name,
           source: 'soundcloud'
         }];
-        console.log('[PlayDLExtractor] SoundCloud info fetched:', info.name);
+        logger.debug('[PlayDLExtractor] SoundCloud info fetched:', info.name);
       }
       else {
-        console.log('[PlayDLExtractor] Searching YouTube for:', query);
+        logger.debug('[PlayDLExtractor] Searching YouTube for:', query);
         const searched = await play.search(query, { limit: 10, source: { youtube: 'video' } });
         
         if (!searched || searched.length === 0) {
-          console.error('[PlayDLExtractor] No search results found for:', query);
+          logger.syserr('[PlayDLExtractor] No search results found for:', query);
           return this.createResponse();
         }
         
@@ -77,11 +78,11 @@ class PlayDLExtractor extends BaseExtractor {
           views: video.views,
           source: 'youtube'
         }));
-        console.log('[PlayDLExtractor] Found', searchResult.length, 'results');
+        logger.debug('[PlayDLExtractor] Found', searchResult.length, 'results');
       }
 
       if (!searchResult || searchResult.length === 0) {
-        console.error('[PlayDLExtractor] No results to process');
+        logger.syserr('[PlayDLExtractor] No results to process');
         return this.createResponse();
       }
 
@@ -100,19 +101,19 @@ class PlayDLExtractor extends BaseExtractor {
         })
       );
 
-      console.log('[PlayDLExtractor] Created', tracks.length, 'track(s)');
+      logger.debug('[PlayDLExtractor] Created', tracks.length, 'track(s)');
       return this.createResponse(null, tracks);
     } 
     catch (error) {
-      console.error('[PlayDLExtractor] Error in handle():', error.message);
-      console.error('[PlayDLExtractor] Full error:', error);
+      logger.syserr('[PlayDLExtractor] Error in handle():', error.message);
+      logger.printErr(error);
       return this.createResponse();
     }
   }
 
   async stream(info) {
     try {
-      console.log('[PlayDLExtractor] Attempting to stream:', info.url);
+      logger.debug('[PlayDLExtractor] Attempting to stream:', info.url);
       
       const streamData = await play.stream(info.url, {
         quality: 1,
@@ -123,13 +124,13 @@ class PlayDLExtractor extends BaseExtractor {
         throw new Error('Failed to get stream data from play-dl');
       }
       
-      console.log('[PlayDLExtractor] Stream created successfully for:', info.title || info.url);
-      return streamData.stream;
+      logger.debug('[PlayDLExtractor] Stream created successfully for:', info.title || info.url);
+      return this.createStream(streamData.stream, { type: streamData.type });
     } 
     catch (error) {
-      console.error('[PlayDLExtractor] Stream error for URL:', info.url);
-      console.error('[PlayDLExtractor] Error details:', error.message);
-      console.error('[PlayDLExtractor] Full error:', error);
+      logger.syserr('[PlayDLExtractor] Stream error for URL:', info.url);
+      logger.syserr('[PlayDLExtractor] Error details:', error.message);
+      logger.printErr(error);
       throw new Error(`Failed to create audio stream: ${error.message}`);
     }
   }
