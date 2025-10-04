@@ -94,7 +94,7 @@ module.exports = new ChatInputCommand({
         {
           requestedBy: interaction.user,
           nodeOptions: {
-            skipOnNoStream: true,
+            skipOnNoStream: false,
             leaveOnEnd: true,
             leaveOnEndCooldown,
             leaveOnEmpty: settings.leaveOnEmpty,
