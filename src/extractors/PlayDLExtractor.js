@@ -12,14 +12,12 @@ class PlayDLExtractor extends BaseExtractor {
   async validate(query, type) {
     if (typeof query !== 'string') return false;
     
-    if (query.includes('soundcloud.com') || 
-        query.includes('spotify.com') ||
-        query.includes('apple.com') ||
-        query.includes('vimeo.com')) {
-      return false;
+    if (query.includes('youtube.com') || query.includes('youtu.be')) {
+      return true;
     }
     
-    if (query.includes('youtube.com') || query.includes('youtu.be')) {
+    if (query.includes('soundcloud.com') || 
+        query.includes('spotify.com')) {
       return true;
     }
     
@@ -63,9 +61,99 @@ class PlayDLExtractor extends BaseExtractor {
           queryType: context.type
         });
         track.extractor = this;
+        track.raw = { youtubeUrl: info.video_details.url };
         logger.debug('[PlayDLExtractor] YouTube info fetched:', info.video_details.title);
         return { playlist: null, tracks: [track] };
-      } 
+      }
+      else if (searchQuery.includes('spotify.com')) {
+        logger.debug('[PlayDLExtractor] Spotify URL detected, extracting metadata...');
+        try {
+          const spotifyData = await play.spotify(searchQuery);
+          const searchTerm = `${spotifyData.name} ${spotifyData.artists?.[0]?.name || ''}`.trim();
+          logger.debug('[PlayDLExtractor] Spotify metadata extracted, searching YouTube for:', searchTerm);
+          
+          const searched = await play.search(searchTerm, { limit: 10, source: { youtube: 'video' } });
+          if (!searched || searched.length === 0) {
+            logger.syserr('[PlayDLExtractor] No YouTube results found for Spotify track:', searchTerm);
+            return { playlist: null, tracks: [] };
+          }
+          
+          searchResult = searched.map(video => {
+            const titleLower = (video.title || '').toLowerCase();
+            const isOfficialAudio = titleLower.includes('official audio') || titleLower.includes('official lyric');
+            const isOfficialVideo = titleLower.includes('official video') || titleLower.includes('official music video');
+            const isTopic = video.channel && video.channel.name && video.channel.name.includes('- Topic');
+            
+            let relevanceScore = 0;
+            if (isTopic) relevanceScore += 100;
+            if (isOfficialAudio) relevanceScore += 80;
+            if (isOfficialVideo) relevanceScore += 60;
+            if (video.channel && video.channel.verified) relevanceScore += 40;
+            
+            return {
+              url: video.url,
+              title: video.title,
+              duration: video.durationInSec * 1000,
+              thumbnail: video.thumbnails[0]?.url,
+              author: video.channel ? video.channel.name : 'Unknown',
+              views: video.views,
+              source: 'youtube',
+              relevanceScore,
+              originalQuery: searchTerm
+            };
+          }).sort((a, b) => b.relevanceScore - a.relevanceScore);
+          
+          logger.debug('[PlayDLExtractor] Found', searchResult.length, 'YouTube results for Spotify track');
+        } catch (err) {
+          logger.syserr('[PlayDLExtractor] Failed to extract Spotify metadata:', err.message);
+          return { playlist: null, tracks: [] };
+        }
+      }
+      else if (searchQuery.includes('soundcloud.com')) {
+        logger.debug('[PlayDLExtractor] SoundCloud URL detected, extracting metadata and searching YouTube...');
+        try {
+          const scInfo = await play.soundcloud(searchQuery);
+          const searchTerm = `${scInfo.name} ${scInfo.user?.name || ''}`.trim();
+          logger.debug('[PlayDLExtractor] SoundCloud metadata extracted, searching YouTube for:', searchTerm);
+          
+          const searched = await play.search(searchTerm, { limit: 10, source: { youtube: 'video' } });
+          if (!searched || searched.length === 0) {
+            logger.syserr('[PlayDLExtractor] No YouTube results found for SoundCloud track:', searchTerm);
+            return { playlist: null, tracks: [] };
+          }
+          
+          searchResult = searched.map(video => {
+            const titleLower = (video.title || '').toLowerCase();
+            const isOfficialAudio = titleLower.includes('official audio') || titleLower.includes('official lyric');
+            const isOfficialVideo = titleLower.includes('official video') || titleLower.includes('official music video');
+            const isTopic = video.channel && video.channel.name && video.channel.name.includes('- Topic');
+            
+            let relevanceScore = 0;
+            if (isTopic) relevanceScore += 100;
+            if (isOfficialAudio) relevanceScore += 80;
+            if (isOfficialVideo) relevanceScore += 60;
+            if (video.channel && video.channel.verified) relevanceScore += 40;
+            
+            return {
+              url: video.url,
+              title: video.title,
+              duration: video.durationInSec * 1000,
+              thumbnail: video.thumbnails[0]?.url,
+              author: video.channel ? video.channel.name : 'Unknown',
+              views: video.views,
+              source: 'youtube',
+              relevanceScore,
+              originalQuery: searchTerm,
+              soundcloudFallback: searchQuery
+            };
+          }).sort((a, b) => b.relevanceScore - a.relevanceScore);
+          
+          logger.debug('[PlayDLExtractor] Found', searchResult.length, 'YouTube results for SoundCloud track');
+        } catch (err) {
+          logger.syserr('[PlayDLExtractor] Failed to extract SoundCloud metadata:', err.message);
+          return { playlist: null, tracks: [] };
+        }
+      }
       else {
         logger.debug('[PlayDLExtractor] Searching YouTube for:', searchQuery);
         const searched = await play.search(searchQuery, { limit: 10, source: { youtube: 'video' } });
@@ -121,9 +209,9 @@ class PlayDLExtractor extends BaseExtractor {
         });
         track.extractor = this;
         track.raw = { 
-          multiplatformSearch: true,
-          searchQuery: trackData.title, 
-          youtubeUrl: trackData.url 
+          youtubeUrl: trackData.url,
+          searchQuery: trackData.originalQuery || trackData.title,
+          soundcloudFallback: trackData.soundcloudFallback
         };
         return track;
       });
@@ -173,138 +261,84 @@ class PlayDLExtractor extends BaseExtractor {
       logger.debug('[PlayDLExtractor] Attempting to stream:', info.url);
       logger.debug('[PlayDLExtractor] Track title:', info.title);
       
-      const streamAttempts = [];
-      
       if (info.url.includes('youtube.com') || info.url.includes('youtu.be')) {
-        logger.debug('[PlayDLExtractor] Direct YouTube URL detected, streaming...');
-        const streamData = await this.streamFromPlatform(info.url, 'YouTube');
-        return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
+        logger.debug('[PlayDLExtractor] Direct YouTube URL detected, normalizing and streaming...');
+        try {
+          const videoInfo = await play.video_basic_info(info.url);
+          const normalizedUrl = videoInfo.video_details.url;
+          logger.debug('[PlayDLExtractor] YouTube URL normalized:', normalizedUrl);
+          const streamData = await this.streamFromPlatform(normalizedUrl, 'YouTube');
+          return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
+        } catch (err) {
+          logger.syserr('[PlayDLExtractor] Failed to normalize/stream YouTube URL:', err.message);
+          throw err;
+        }
       }
       
-      if (info.raw?.multiplatformSearch === true) {
-        logger.debug('[PlayDLExtractor] Multi-platform search detected, racing all platforms...');
-        
-        let searchQuery = info.raw?.searchQuery || info.title || '';
+      let searchQuery = info.raw?.searchQuery || info.title || info.author || '';
+      
+      if (!searchQuery || !searchQuery.trim()) {
+        logger.syserr('[PlayDLExtractor] Empty search query! Attempting to extract from all metadata...');
+        searchQuery = info.description || '';
         
         if (!searchQuery || !searchQuery.trim()) {
-          logger.syserr('[PlayDLExtractor] Empty search query! Attempting to extract from metadata...');
-          searchQuery = info.author || info.description || '';
-          
-          if (!searchQuery || !searchQuery.trim()) {
-            throw new Error('Cannot search with empty query - no title, author, or description available');
-          }
-        }
-        
-        searchQuery = searchQuery.trim();
-        logger.debug('[PlayDLExtractor] Multi-platform search query:', searchQuery);
-        
-        const youtubeSearch = (info.raw?.youtubeUrl 
-          ? Promise.resolve([{ url: info.raw.youtubeUrl, title: info.title }])
-          : play.search(searchQuery, { limit: 1, source: { youtube: 'video' } })
-        ).then(results => {
-            if (results && results.length > 0) {
-              logger.debug('[PlayDLExtractor] YouTube found:', results[0].title);
-              return this.streamFromPlatform(results[0].url, 'YouTube');
-            }
-            throw new Error('YouTube search returned no results');
-          })
-          .catch(err => {
-            logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
-            throw err;
-          });
-        streamAttempts.push(youtubeSearch);
-        
-        const soundcloudSearch = play.search(searchQuery, { limit: 1, source: { soundcloud: 'tracks' } })
-          .then(results => {
-            if (results && results.length > 0) {
-              logger.debug('[PlayDLExtractor] SoundCloud found:', results[0].title);
-              return this.streamFromPlatform(results[0].url, 'SoundCloud');
-            }
-            throw new Error('SoundCloud search returned no results');
-          })
-          .catch(err => {
-            logger.debug('[PlayDLExtractor] SoundCloud search/stream failed:', err.message);
-            throw err;
-          });
-        streamAttempts.push(soundcloudSearch);
-      } 
-      else {
-        const soundcloudValidate = play.so_validate(info.url);
-        if (soundcloudValidate === 'track') {
-          logger.debug('[PlayDLExtractor] Direct SoundCloud URL detected, trying parallel approach...');
-          
-          const scDirectStream = this.streamFromPlatform(info.url, 'SoundCloud')
-            .catch(err => {
-              logger.debug('[PlayDLExtractor] SoundCloud direct stream failed:', err.message);
-              throw err;
-            });
-          streamAttempts.push(scDirectStream);
-          
-          const searchQuery = info.title || info.author || 'music';
-          if (searchQuery && searchQuery.trim() && searchQuery !== 'music') {
-            const ytSearchStream = play.search(searchQuery, { limit: 1, source: { youtube: 'video' } })
-              .then(results => {
-                if (results && results.length > 0) {
-                  logger.debug('[PlayDLExtractor] YouTube search found:', results[0].title);
-                  return this.streamFromPlatform(results[0].url, 'YouTube');
-                }
-                throw new Error('YouTube search returned no results');
-              })
-              .catch(err => {
-                logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
-                throw err;
-              });
-            streamAttempts.push(ytSearchStream);
-          }
-          
-          logger.debug('[PlayDLExtractor] Racing SoundCloud direct + YouTube search...');
-        } else {
-          logger.debug('[PlayDLExtractor] Fallback: No direct URL or multi-platform search, trying YouTube...');
-          
-          let searchQuery = info.title || info.url || '';
-          
-          if (!searchQuery || !searchQuery.trim()) {
-            logger.syserr('[PlayDLExtractor] Empty search query! Attempting to extract from metadata...');
-            searchQuery = info.author || info.description || '';
-            
-            if (!searchQuery || !searchQuery.trim()) {
-              throw new Error('Cannot search with empty query - no title, author, or description available');
-            }
-          }
-          
-          searchQuery = searchQuery.trim();
-          logger.debug('[PlayDLExtractor] Fallback search query:', searchQuery);
-          
-          const youtubeSearch = play.search(searchQuery, { limit: 1, source: { youtube: 'video' } })
-            .then(results => {
-              if (results && results.length > 0) {
-                logger.debug('[PlayDLExtractor] YouTube found for fallback:', results[0].title);
-                return this.streamFromPlatform(results[0].url, 'YouTube');
-              }
-              throw new Error('YouTube search returned no results');
-            })
-            .catch(err => {
-              logger.debug('[PlayDLExtractor] YouTube fallback search/stream failed:', err.message);
-              throw err;
-            });
-          streamAttempts.push(youtubeSearch);
+          throw new Error('Cannot search with empty query - no title, author, or description available');
         }
       }
       
-      logger.debug(`[PlayDLExtractor] Racing ${streamAttempts.length} platform(s)...`);
+      searchQuery = searchQuery.trim();
+      logger.debug('[PlayDLExtractor] Search query for streaming:', searchQuery);
       
-      const winner = await Promise.any(streamAttempts).catch(aggregateError => {
-        logger.syserr('[PlayDLExtractor] All platforms failed!');
-        if (aggregateError.errors) {
-          aggregateError.errors.forEach((err, i) => {
-            logger.syserr(`  Platform ${i + 1}:`, err.message);
-          });
+      if (info.raw?.youtubeUrl) {
+        logger.debug('[PlayDLExtractor] Using stored YouTube URL:', info.raw.youtubeUrl);
+        try {
+          const videoInfo = await play.video_basic_info(info.raw.youtubeUrl);
+          const normalizedUrl = videoInfo.video_details.url;
+          const streamData = await this.streamFromPlatform(normalizedUrl, 'YouTube');
+          return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
+        } catch (err) {
+          logger.debug('[PlayDLExtractor] Stored YouTube URL failed, searching...', err.message);
         }
-        throw new Error('⚠️ Could not stream from any platform. All sources failed or timed out.');
-      });
+      }
       
-      logger.debug(`[PlayDLExtractor] ✓ Winner: ${winner.platform} - streaming now`);
-      return this.createStream(winner.streamData.stream, { type: winner.streamData.type });
+      logger.debug('[PlayDLExtractor] Searching YouTube for:', searchQuery);
+      try {
+        const searched = await play.search(searchQuery, { limit: 1, source: { youtube: 'video' } });
+        if (searched && searched.length > 0) {
+          logger.debug('[PlayDLExtractor] YouTube found:', searched[0].title);
+          const videoInfo = await play.video_basic_info(searched[0].url);
+          const normalizedUrl = videoInfo.video_details.url;
+          const streamData = await this.streamFromPlatform(normalizedUrl, 'YouTube');
+          return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
+        }
+        logger.debug('[PlayDLExtractor] No YouTube results found');
+      } catch (err) {
+        logger.debug('[PlayDLExtractor] YouTube search/stream failed:', err.message);
+      }
+      
+      if (info.raw?.soundcloudFallback) {
+        logger.debug('[PlayDLExtractor] YouTube failed, trying SoundCloud fallback URL:', info.raw.soundcloudFallback);
+        try {
+          const streamData = await this.streamFromPlatform(info.raw.soundcloudFallback, 'SoundCloud');
+          return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
+        } catch (err) {
+          logger.debug('[PlayDLExtractor] SoundCloud fallback failed:', err.message);
+        }
+      }
+      
+      logger.debug('[PlayDLExtractor] All YouTube attempts failed, searching SoundCloud as last resort...');
+      try {
+        const searched = await play.search(searchQuery, { limit: 1, source: { soundcloud: 'tracks' } });
+        if (searched && searched.length > 0) {
+          logger.debug('[PlayDLExtractor] SoundCloud found:', searched[0].title);
+          const streamData = await this.streamFromPlatform(searched[0].url, 'SoundCloud');
+          return this.createStream(streamData.streamData.stream, { type: streamData.streamData.type });
+        }
+      } catch (err) {
+        logger.debug('[PlayDLExtractor] SoundCloud fallback search/stream failed:', err.message);
+      }
+      
+      throw new Error('⚠️ Could not stream from any platform. All sources failed or timed out.');
     } 
     catch (error) {
       logger.syserr('[PlayDLExtractor] Stream error for:', info.title || info.url);
