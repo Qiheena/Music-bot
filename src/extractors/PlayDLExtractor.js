@@ -1,5 +1,8 @@
 const { BaseExtractor, Track } = require('discord-player');
 const play = require('play-dl');
+const ytdl = require('ytdl-core');
+const ytdlDistube = require('@distube/ytdl-core');
+const youtubeSr = require('youtube-sr').default;
 const logger = require('@QIHeena/logger');
 
 class PlayDLExtractor extends BaseExtractor {
@@ -254,6 +257,132 @@ class PlayDLExtractor extends BaseExtractor {
     }
   }
 
+  async streamFromPlayDL(url, timeout = 8000) {
+    let timeoutHandle;
+    const streamPromise = play.stream(url, {
+      quality: 2,
+      discordPlayerCompatibility: true
+    });
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutHandle = setTimeout(() => reject(new Error(`PlayDL timeout after ${timeout}ms`)), timeout);
+    });
+    
+    try {
+      const streamData = await Promise.race([streamPromise, timeoutPromise]);
+      clearTimeout(timeoutHandle);
+      
+      if (!streamData || !streamData.stream) {
+        throw new Error('Failed to get stream data from PlayDL');
+      }
+      
+      logger.debug(`[MultiTool] ✓ PlayDL stream ready`);
+      return { streamData, source: 'PlayDL', stream: streamData.stream, type: streamData.type };
+    } catch (error) {
+      clearTimeout(timeoutHandle);
+      logger.debug(`[MultiTool] ✗ PlayDL failed:`, error.message);
+      throw error;
+    }
+  }
+
+  async streamFromYtdlCore(url, timeout = 8000) {
+    let timeoutHandle;
+    const streamPromise = new Promise((resolve, reject) => {
+      try {
+        const stream = ytdl(url, {
+          filter: 'audioonly',
+          quality: 'highestaudio',
+          highWaterMark: 1 << 25
+        });
+        
+        stream.on('error', reject);
+        stream.once('readable', () => resolve(stream));
+      } catch (err) {
+        reject(err);
+      }
+    });
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutHandle = setTimeout(() => reject(new Error(`ytdl-core timeout after ${timeout}ms`)), timeout);
+    });
+    
+    try {
+      const stream = await Promise.race([streamPromise, timeoutPromise]);
+      clearTimeout(timeoutHandle);
+      logger.debug(`[MultiTool] ✓ ytdl-core stream ready`);
+      return { stream, source: 'ytdl-core', type: 'arbitrary' };
+    } catch (error) {
+      clearTimeout(timeoutHandle);
+      logger.debug(`[MultiTool] ✗ ytdl-core failed:`, error.message);
+      throw error;
+    }
+  }
+
+  async streamFromYtdlDistube(url, timeout = 8000) {
+    let timeoutHandle;
+    const streamPromise = new Promise((resolve, reject) => {
+      try {
+        const stream = ytdlDistube(url, {
+          filter: 'audioonly',
+          quality: 'highestaudio',
+          highWaterMark: 1 << 25
+        });
+        
+        stream.on('error', reject);
+        stream.once('readable', () => resolve(stream));
+      } catch (err) {
+        reject(err);
+      }
+    });
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutHandle = setTimeout(() => reject(new Error(`ytdl-distube timeout after ${timeout}ms`)), timeout);
+    });
+    
+    try {
+      const stream = await Promise.race([streamPromise, timeoutPromise]);
+      clearTimeout(timeoutHandle);
+      logger.debug(`[MultiTool] ✓ @distube/ytdl-core stream ready`);
+      return { stream, source: '@distube/ytdl-core', type: 'arbitrary' };
+    } catch (error) {
+      clearTimeout(timeoutHandle);
+      logger.debug(`[MultiTool] ✗ @distube/ytdl-core failed:`, error.message);
+      throw error;
+    }
+  }
+
+  async raceYouTubeStreams(url) {
+    logger.debug(`[MultiTool] Racing 3 YouTube tools for: ${url}`);
+    
+    return new Promise((resolve, reject) => {
+      let resolved = false;
+      let completedCount = 0;
+      const totalTools = 3;
+      const errors = [];
+      
+      const tryResolve = (result) => {
+        if (!resolved) {
+          resolved = true;
+          logger.debug(`[MultiTool] ✓ Winner: ${result.source}`);
+          resolve(result);
+        }
+      };
+      
+      const tryReject = (toolName, error) => {
+        errors.push(`${toolName}: ${error.message}`);
+        completedCount++;
+        
+        if (completedCount === totalTools && !resolved) {
+          reject(new Error(`All YouTube tools failed: ${errors.join(' | ')}`));
+        }
+      };
+      
+      this.streamFromPlayDL(url).then(tryResolve).catch(err => tryReject('PlayDL', err));
+      this.streamFromYtdlCore(url).then(tryResolve).catch(err => tryReject('ytdl-core', err));
+      this.streamFromYtdlDistube(url).then(tryResolve).catch(err => tryReject('@distube/ytdl-core', err));
+    });
+  }
+
   async streamFromPlatform(url, platform) {
     const timeout = 10000;
     let timeoutHandle;
@@ -414,7 +543,13 @@ class PlayDLExtractor extends BaseExtractor {
       }
       
       if (youtubeUrl) {
-        urlsToRace.push({ url: youtubeUrl, platform: 'YouTube', priority: 100 });
+        logger.debug('[MultiTool] Direct YouTube URL detected, racing multiple tools...');
+        try {
+          const winner = await this.raceYouTubeStreams(youtubeUrl);
+          return this.createStream(winner.stream, { type: winner.type });
+        } catch (err) {
+          logger.debug('[MultiTool] All YouTube tools failed:', err.message);
+        }
       }
       
       if (info.raw?.soundcloudFallback) {
@@ -443,15 +578,31 @@ class PlayDLExtractor extends BaseExtractor {
       }
       
       if (urlsToRace.length > 0) {
-        logger.debug(`[PlayDLExtractor] Racing ${urlsToRace.length} streams from multiple platforms...`);
-        logger.debug('[PlayDLExtractor] Platform priorities: YouTube (100+), SoundCloud (50+)');
+        const youtubeUrls = urlsToRace.filter(u => u.platform === 'YouTube');
+        const otherUrls = urlsToRace.filter(u => u.platform !== 'YouTube');
         
-        try {
-          const winner = await this.raceMultiplePlatformStreams(urlsToRace);
-          logger.debug(`[PlayDLExtractor] ✓ Stream winner: ${winner.platform}`);
-          return this.createStream(winner.streamData.stream, { type: winner.streamData.type });
-        } catch (err) {
-          logger.debug('[PlayDLExtractor] Multi-platform race failed:', err.message);
+        if (youtubeUrls.length > 0) {
+          logger.debug(`[MultiTool] Racing ${youtubeUrls.length} YouTube URLs with multiple tools...`);
+          
+          for (const { url } of youtubeUrls.slice(0, 1)) {
+            try {
+              const winner = await this.raceYouTubeStreams(url);
+              return this.createStream(winner.stream, { type: winner.type });
+            } catch (err) {
+              logger.debug('[MultiTool] YouTube tools race failed:', err.message);
+            }
+          }
+        }
+        
+        if (otherUrls.length > 0) {
+          logger.debug(`[PlayDLExtractor] Racing ${otherUrls.length} non-YouTube streams...`);
+          try {
+            const winner = await this.raceMultiplePlatformStreams(otherUrls);
+            logger.debug(`[PlayDLExtractor] ✓ Stream winner: ${winner.platform}`);
+            return this.createStream(winner.streamData.stream, { type: winner.streamData.type });
+          } catch (err) {
+            logger.debug('[PlayDLExtractor] Multi-platform race failed:', err.message);
+          }
         }
       }
       
