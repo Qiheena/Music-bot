@@ -20,7 +20,7 @@ const commandRoutes = require('./commands.routes');
 
 // Destructure from our environmental file
 // Set our default port to 3000 if it's missing from environmental file
-const { NODE_ENV, PORT = 3000 } = process.env;
+const { NODE_ENV, PORT = 5000 } = process.env;
 
 /***
  * Initialize our express app
