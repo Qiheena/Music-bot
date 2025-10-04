@@ -8,13 +8,16 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## October 4, 2025 - Security & Optimization Update
-- **Removed ytdl-core dependency**: Eliminated download/cache approach that was causing "Could not parse decipher function" errors
-- **Simplified PlayDLExtractor**: Streamlined stream() method to rely on play-dl's native streaming without file downloads
-- **Security fixes**: Removed discord-player-deezer (had axios vulnerabilities), disabled Deezer support
-- **Dependency updates**: Upgraded Express from 4.18.2 to 4.21.2
-- **Dockerfile optimization**: Switched to Alpine Linux base, added health check, non-root user execution
-- **Result**: Zero npm security vulnerabilities, cleaner startup logs, more reliable streaming
+## October 4, 2025 - Download-Based Playback Architecture
+- **Complete architectural overhaul**: Switched from streaming to download-first approach for YouTube playback
+- **New MusicDownloadManager service**: Handles audio file downloads with concurrency control (max 3 simultaneous)
+- **Simplified PlayDLExtractor**: Reduced from 720 lines to 285 lines, focuses on metadata extraction only
+- **Download redundancy**: Primary ytdl-core + fallback play-dl for reliable downloads
+- **Guild isolation**: Per-guild download directories (./tmp/audio/<guildId>/<trackId>.webm)
+- **Automatic cleanup**: Files removed after playback completes, prevents disk bloat
+- **Deterministic track IDs**: Uses YouTube video IDs for consistent file naming
+- **Dependencies updated**: Removed @distube/ytdl-core and mediaplex, added p-queue and fs-extra
+- **Result**: More reliable playback, no premature track endings, proper resource cleanup
 
 # System Architecture
 
@@ -48,12 +51,19 @@ Preferred communication style: Simple, everyday language.
 - **Persistence**: Settings persist across bot restarts
 
 ## Audio Processing
+- **Download-First Architecture**: Audio files downloaded before playback for reliability
+- **MusicDownloadManager**: Dedicated service for download orchestration
+  - Concurrency control: Max 3 simultaneous downloads via p-queue
+  - Download timeout: 45 seconds per attempt
+  - Redundancy: ytdl-core (primary) + play-dl (fallback)
+  - Caching: Reuses already-downloaded files
+  - Storage: ./tmp/audio/<guildId>/<trackId>.webm
 - **Extractors**: Platform-specific (SoundCloud, Apple Music, Vimeo, ReverbNation, attachments, YouTube via PlayDL)
-- **Multi-Platform Racing**: Parallel streaming from YouTube and SoundCloud with intelligent priority-based selection
-- **Stream Priority**: YouTube (100+ priority) heavily favored over SoundCloud (50+ priority)
-- **Fast Playback**: Plays first available stream with 500ms grace period for higher priority sources
-- **Timeout**: 10-second timeout per platform for faster response
 - **Search Accuracy**: Enhanced YouTube ranking algorithm considering Topic channels, official audio, VEVO, verified channels, exact matches, quality markers, and view count
+- **Cleanup System**: 
+  - Per-track cleanup when next track starts
+  - Per-guild cleanup on disconnect
+  - Automatic temp directory cleanup on bot startup
 - **Filters**: Support for audio filters and equalizer presets
 - **FFmpeg**: Used for audio processing and format conversion
 
@@ -81,6 +91,8 @@ Preferred communication style: Simple, everyday language.
 - **Modules**: `/src/modules/`
 - **Handlers**: `/src/handlers/`
 - **Classes**: `/src/classes/`
+- **Services**: `/src/services/` (MusicDownloadManager)
+- **Extractors**: `/src/extractors/` (PlayDLExtractor)
 
 # External Dependencies
 
@@ -92,8 +104,11 @@ Preferred communication style: Simple, everyday language.
 ## Music Services
 - **discord-player v7.1.0**: Music playback framework
 - **@discord-player/extractor v7.1.0**: Platform extractors (SoundCloud, Apple Music, Vimeo, ReverbNation, Discord Attachments)
-- **PlayDL**: YouTube support with parallel search
-- **mediaplex**: Audio streaming utility
+- **ytdl-core v4.11.5**: Primary YouTube audio downloader
+- **play-dl v1.9.7**: YouTube metadata + fallback downloader
+- **youtube-sr v4.3.12**: YouTube search fallback
+- **p-queue v6.6.2**: Download concurrency control
+- **fs-extra v11.2.0**: File system operations for downloads
 
 ## Database
 - **LokiJS**: In-memory document database
