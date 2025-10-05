@@ -242,21 +242,54 @@ class StreamingExtractor extends BaseExtractor {
         throw new Error('No URL provided for streaming');
       }
       
-      logger.info('[StreamingExtractor] Starting direct stream for:', { url, source });
+      logger.info('[StreamingExtractor] Starting direct stream for:', url?.substring(0, 80));
       
-      try {
-        logger.debug('[StreamingExtractor] Trying play-dl streaming first');
-        const stream = await play.stream(url, { discordPlayerCompatibility: true });
-        logger.debug('[StreamingExtractor] play-dl stream created successfully');
-        return {
-          stream: stream.stream,
-          type: stream.type
-        };
-      } catch (playDlError) {
-        logger.debug('[StreamingExtractor] play-dl failed, trying yt-dlp fallback:', playDlError.message);
+      // Check for cached stream URL from background extraction
+      if (info._streamUrlCached && info._streamUrlTime) {
+        const cacheAge = Date.now() - info._streamUrlTime;
+        if (cacheAge < 60000) { // Cache valid for 60 seconds
+          logger.info('[StreamingExtractor] Using cached stream URL (age:', Math.floor(cacheAge/1000) + 's)');
+          const { spawn } = require('child_process');
+          const { PassThrough } = require('stream');
+          
+          const ytdlpProcess = spawn('yt-dlp', [
+            '-f', 'bestaudio/best',
+            '--no-warnings',
+            '--no-check-certificates',
+            '--geo-bypass',
+            '--no-playlist',
+            '--hls-use-mpegts',
+            '-o', '-',
+            info._streamUrlCached
+          ]);
+          
+          const stream = new PassThrough();
+          ytdlpProcess.stdout.pipe(stream);
+          
+          stream.on('error', (err) => {
+            logger.debug('[StreamingExtractor] Stream error:', err.message);
+          });
+          
+          ytdlpProcess.stderr.on('data', (data) => {
+            const message = data.toString().trim();
+            if (message) logger.debug('[StreamingExtractor] yt-dlp:', message);
+          });
+          
+          ytdlpProcess.on('error', (error) => {
+            logger.syserr('[StreamingExtractor] yt-dlp error:', error.message);
+            stream.destroy(new Error(`yt-dlp error: ${error.message}`));
+          });
+          
+          logger.debug('[StreamingExtractor] Stream created from cached URL');
+          return {
+            stream: stream,
+            type: 'arbitrary'
+          };
+        }
       }
       
-      logger.debug('[StreamingExtractor] Using yt-dlp for streaming');
+      // No cache, use normal yt-dlp extraction
+      logger.debug('[StreamingExtractor] Using yt-dlp for streaming (no cache)');
       const { spawn } = require('child_process');
       const { PassThrough } = require('stream');
       
