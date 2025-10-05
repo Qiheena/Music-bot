@@ -271,21 +271,32 @@ class StreamingExtractor extends BaseExtractor {
       const stream = new PassThrough();
       ytdlpProcess.stdout.pipe(stream);
       
+      let stderrOutput = '';
+      
       ytdlpProcess.stderr.on('data', (data) => {
         const message = data.toString().trim();
-        if (message) {
+        stderrOutput += message + '\n';
+        if (message && !message.includes('WARNING')) {
           logger.debug('[StreamingExtractor] yt-dlp stderr:', message);
         }
       });
       
       ytdlpProcess.on('error', (error) => {
         logger.syserr('[StreamingExtractor] yt-dlp process error:', error.message);
-        stream.destroy(error);
+        const err = new Error(`yt-dlp process error: ${error.message}`);
+        stream.destroy(err);
       });
       
       ytdlpProcess.on('close', (code) => {
-        if (code !== 0) {
-          logger.syserr('[StreamingExtractor] yt-dlp exited with code:', code);
+        if (code !== 0 && code !== null) {
+          const errorMessage = stderrOutput.includes('ERROR') 
+            ? stderrOutput.split('ERROR:').pop().split('\n')[0].trim()
+            : `yt-dlp exited with code ${code}`;
+          logger.syserr('[StreamingExtractor] yt-dlp failed:', errorMessage);
+          const err = new Error(`YouTube streaming failed: ${errorMessage}`);
+          if (!stream.destroyed) {
+            stream.destroy(err);
+          }
         }
       });
       
