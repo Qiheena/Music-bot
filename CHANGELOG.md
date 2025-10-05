@@ -206,4 +206,4 @@
 
 ### Features
 
-* initial commit 🥳 ([5a70e0e](https://github.com/QIHeena/QIHeena-music-bot/commit/5a70e0ee3c715256d8e5c9ee2f591496b3f51f0d))
+* initial commit 🥳 ([5a70e0e](https://github.com/QIHeena/QIHeena-music-bot/commit/5a70e0ee3c715256d8ec9ee2f591496b3f51f0d))
