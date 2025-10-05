@@ -8,7 +8,7 @@ const { MS_IN_ONE_SECOND, EMBED_DESCRIPTION_MAX_LENGTH } = require('./constants'
 
 module.exports = (player) => {
   // this event is emitted whenever discord-player starts to play a track
-  player.events.on('playerStart', (queue, track) => {
+  player.events.on('playerStart', async (queue, track) => {
     queue.metadata.channel.send({ embeds: [
       new EmbedBuilder({
         color: colorResolver(),
@@ -20,6 +20,36 @@ module.exports = (player) => {
         }` }
       }).setTimestamp(queue.metadata.timestamp)
     ] });
+
+    // Background extraction: Pre-extract next track stream URL while current is playing
+    try {
+      const nextTrack = queue.tracks.at(0);
+      if (nextTrack && !nextTrack._streamUrlCached) {
+        const trackUrl = nextTrack.url;
+        if (trackUrl && (trackUrl.includes('youtube.com') || trackUrl.includes('youtu.be'))) {
+          logger.debug('[Background Extraction] Pre-extracting stream URL for:', nextTrack.title?.substring(0, 50));
+          
+          // Pre-fetch stream URL in background using yt-dlp
+          const { exec } = require('child_process');
+          exec(`yt-dlp -f bestaudio/best --get-url --no-warnings --no-playlist "${trackUrl}"`, {
+            timeout: 5000
+          }, (error, stdout, stderr) => {
+            if (!error && stdout) {
+              const streamUrl = stdout.trim().split('\n')[0];
+              if (streamUrl && streamUrl.startsWith('http')) {
+                nextTrack._streamUrlCached = streamUrl;
+                nextTrack._streamUrlTime = Date.now();
+                logger.info('[Background Extraction] Cached stream URL for:', nextTrack.title?.substring(0, 50));
+              }
+            } else if (error) {
+              logger.debug('[Background Extraction] Pre-extraction failed:', error.message);
+            }
+          });
+        }
+      }
+    } catch (err) {
+      logger.debug('[Background Extraction] Error during background extraction:', err.message);
+    }
   });
 
   player.events.on('error', (queue, error) => {
