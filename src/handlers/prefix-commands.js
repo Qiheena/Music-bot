@@ -204,7 +204,11 @@ const executePrefixCommand = async (client, message, commandName, args, prefix) 
   
   // For commands with a single string option (like query), join all args
   if (commandOptions.length === 1 && commandOptions[0].type === 3) {
-    parsedArgs[commandOptions[0].name] = args.join(' ');
+    const joinedArgs = args.join(' ');
+    // Only set if args were actually provided (not empty)
+    if (joinedArgs.length > 0) {
+      parsedArgs[commandOptions[0].name] = joinedArgs;
+    }
   } else {
     // Map args to options by index
     commandOptions.forEach((option, index) => {
