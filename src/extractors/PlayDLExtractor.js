@@ -368,13 +368,18 @@ class PlayDLExtractor extends BaseExtractor {
       
       logger.info('[PlayDLExtractor] Using direct streaming for:', { url, source });
       
-      const stream = await play.stream(url, { discordPlayerCompatibility: true });
+      const stream = await play.stream(url, { 
+        discordPlayerCompatibility: true,
+        quality: 2
+      });
+      logger.debug('[PlayDLExtractor] Stream created successfully');
       return {
         stream: stream.stream,
         type: stream.type
       };
     } catch (error) {
-      logger.syserr('[PlayDLExtractor] Streaming failed:', error);
+      logger.syserr('[PlayDLExtractor] Streaming failed:', error.message || error);
+      logger.debug('[PlayDLExtractor] Full error:', error);
       throw error;
     }
   }
