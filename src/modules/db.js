@@ -57,6 +57,7 @@ const getGuildSettings = (guildId) => {
     // [DEV] - Add config validation
     guilds.insertOne({
       guildId,
+      prefix: ';',
       volume: clientConfig.defaultVolume,
       repeatMode: clientConfig.defaultRepeatMode,
       musicChannelIds: [],
@@ -122,6 +123,12 @@ const getGuildSettings = (guildId) => {
 
   if (typeof settings.leaveOnEmptyCooldown === 'undefined') {
     settings.leaveOnEmptyCooldown = clientConfig.defaultLeaveOnEmptyCooldown;
+    guilds.update(settings);
+    saveDb();
+  }
+
+  if (typeof settings.prefix === 'undefined') {
+    settings.prefix = ';';
     guilds.update(settings);
     saveDb();
   }
