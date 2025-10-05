@@ -19,7 +19,6 @@ const modeArg = process.argv.find((arg) => arg.startsWith('mode='));
 // Before registering any commands or listeners
 require('./modules/db');
 const pkg = require('../package');
-const { clearApplicationCommandData, refreshSlashCommandData } = require('./handlers/commands');
 const {
   getFiles, titleCase, getRuntime, clientConfig
 } = require('./util');
@@ -73,16 +72,7 @@ require('./music-player')(player);
 const {
   DISCORD_BOT_TOKEN,
   DEBUG_ENABLED,
-  CLEAR_SLASH_COMMAND_API_DATA,
-  USE_API,
-
-  // Project directory structure
-  CHAT_INPUT_COMMAND_DIR,
-  CONTEXT_MENU_COMMAND_DIR,
-  AUTO_COMPLETE_INTERACTION_DIR,
-  BUTTON_INTERACTION_DIR,
-  MODAL_INTERACTION_DIR,
-  SELECT_MENU_INTERACTION_DIR
+  USE_API
 } = process.env;
 
 // Listen for user requested shutdown
@@ -144,118 +134,22 @@ const registerListeners = () => {
 // Containerizing? =) all our client extensions
 client.container = clientExtensions;
 
-// Clear only executes if enabled in .env
-if (CLEAR_SLASH_COMMAND_API_DATA === 'true') {
-  clearApplicationCommandData();
-}
+// Load prefix commands
+const { commands } = client.container;
+const CHAT_INPUT_COMMAND_DIR = 'src/commands';
 
-// Destructure from our client extensions container
-const {
-  commands,
-  contextMenus,
-  buttons,
-  modals,
-  autoCompletes,
-  selectMenus
-} = client.container;
-
-// Binding our Chat Input/Slash commands
-logger.debug(`Start loading Slash Commands... ("${ CHAT_INPUT_COMMAND_DIR }")`);
+logger.debug(`Start loading Prefix Commands... ("${ CHAT_INPUT_COMMAND_DIR }")`);
 for (const filePath of getFiles(CHAT_INPUT_COMMAND_DIR)) {
   try {
     const command = require(filePath);
-
     command.load(filePath, commands);
-
-    // loadAliases AFTER #load(), setting the origin filepath
     command.loadAliases();
   }
   catch (err) {
-    logger.syserr(`Error encountered while loading Slash Command (${ CHAT_INPUT_COMMAND_DIR }), are you sure you're exporting an instance of ChatInputCommand?\nCommand: ${ filePath }`);
+    logger.syserr(`Error encountered while loading Prefix Command (${ CHAT_INPUT_COMMAND_DIR })\nCommand: ${ filePath }`);
     console.error(err.stack || err);
   }
 }
-
-// Binding our User Context Menu commands
-logger.debug(`Start loading User Context Menu Commands... ("${ CONTEXT_MENU_COMMAND_DIR }/user")`);
-for (const filePath of getFiles(`${ CONTEXT_MENU_COMMAND_DIR }/user`)) {
-  try {
-    const command = require(filePath);
-    command.load(filePath, contextMenus);
-  }
-  catch (err) {
-    logger.syserr(`Error encountered while loading User Context Menu Command (${ CONTEXT_MENU_COMMAND_DIR }/user), are you sure you're exporting an instance of UserContextCommand?\nCommand: ${ filePath }`);
-    console.error(err.stack || err);
-  }
-}
-
-// Binding our Message Context Menu commands
-logger.debug(`Start loading Message Context Menu Commands... ("${ CONTEXT_MENU_COMMAND_DIR }/message")`);
-for (const filePath of getFiles(`${ CONTEXT_MENU_COMMAND_DIR }/message`)) {
-  try {
-    const command = require(filePath);
-    command.load(filePath, contextMenus);
-  }
-  catch (err) {
-    logger.syserr(`Error encountered while loading User Context Menu Command (${ CONTEXT_MENU_COMMAND_DIR }/message), are you sure you're exporting an instance of MessageContextCommand?\nCommand: ${ filePath }`);
-    console.error(err.stack || err);
-  }
-}
-
-// Binding our Button interactions
-logger.debug(`Start loading Button Commands... ("${ BUTTON_INTERACTION_DIR }")`);
-for (const filePath of getFiles(BUTTON_INTERACTION_DIR)) {
-  try {
-    const command = require(filePath);
-    command.load(filePath, buttons);
-  }
-  catch (err) {
-    logger.syserr(`Error encountered while loading Button Command (${ BUTTON_INTERACTION_DIR }), are you sure you're exporting an instance of ComponentCommand?\nCommand: ${ filePath }`);
-    console.error(err.stack || err);
-  }
-}
-
-// Binding our Modal interactions
-logger.debug(`Start loading Modal Commands... ("${ MODAL_INTERACTION_DIR }")`);
-for (const filePath of getFiles(MODAL_INTERACTION_DIR)) {
-  try {
-    const command = require(filePath);
-    command.load(filePath, modals);
-  }
-  catch (err) {
-    logger.syserr(`Error encountered while loading Modal Command (${ MODAL_INTERACTION_DIR }), are you sure you're exporting an instance of ComponentCommand?\nCommand: ${ filePath }`);
-    console.error(err.stack || err);
-  }
-}
-
-// Binding our Autocomplete interactions
-logger.debug(`Start loading Auto Complete Commands... ("${ AUTO_COMPLETE_INTERACTION_DIR }")`);
-for (const filePath of getFiles(AUTO_COMPLETE_INTERACTION_DIR)) {
-  try {
-    const command = require(filePath);
-    command.load(filePath, autoCompletes);
-  }
-  catch (err) {
-    logger.syserr(`Error encountered while loading Auto Complete Command (${ AUTO_COMPLETE_INTERACTION_DIR }), are you sure you're exporting an instance of ComponentCommand?\nCommand: ${ filePath }`);
-    console.error(err.stack || err);
-  }
-}
-
-// Binding our Select Menu interactions
-logger.debug(`Start loading Select Menu Commands... ("${ SELECT_MENU_INTERACTION_DIR }")`);
-for (const filePath of getFiles(SELECT_MENU_INTERACTION_DIR)) {
-  try {
-    const command = require(filePath);
-    command.load(filePath, selectMenus);
-  }
-  catch (err) {
-    logger.syserr(`Error encountered while loading Select Menu Command (${ SELECT_MENU_INTERACTION_DIR }), are you sure you're exporting an instance of ComponentCommand?\nCommand: ${ filePath }`);
-    console.error(err.stack || err);
-  }
-}
-
-// Refresh InteractionCommand data if requested
-refreshSlashCommandData(client);
 
 // Registering our listeners
 registerListeners();

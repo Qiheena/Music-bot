@@ -154,52 +154,21 @@ const runCommand = (client, interaction, activeId, cmdRunTimeStart) => {
 };
 
 module.exports = (client, interaction) => {
-  // Definitions
-  const {
-    member, channel, commandName, customId
-  } = interaction;
-
-  // Initial performance measuring timer
-  const cmdRunTimeStart = process.hrtime.bigint();
-
-  // Conditional Debug logging
-  if (DEBUG_INTERACTIONS === 'true') {
-    logger.startLog('New Interaction');
-    console.dir(interaction, {
-      showHidden: false, depth: 0, colors: true
-    });
-    logger.endLog('New Interaction');
-  }
-
-  // Check interaction/command availability
-  // API availability, guild object, etc
-  // Replies to the interaction in function
-  if (checkInteractionAvailability(interaction) === false) return;
-
-  // Setting the permLevel on the member object before we do anything else
-  const permLevel = getPermissionLevel(clientConfig, member, channel);
-
-  interaction.member.permLevel = permLevel;
-
+  // Slash commands are disabled - only prefix commands are supported
+  // This listener only handles ping interactions now
+  
   // Handle ping interactions in separate file
   if (interaction.type === InteractionType.Ping) {
     client.emit('pingInteraction', (interaction));
     return;
   }
-
-  // Search the client.container.collections for the command
-  const activeId = commandName || customId;
-  const isAutoComplete = interaction.type === InteractionType.ApplicationCommandAutocomplete;
-
-  // Execute early if autocomplete,
-  // avoiding the permission checks
-  // (as this is managed through default_member_permissions)
-  if (isAutoComplete) {
-    client.emit('autoCompleteInteraction', (interaction));
-    return;
+  
+  // For any other interaction, inform the user that slash commands are disabled
+  if (interaction.isRepliable()) {
+    const { member } = interaction;
+    interaction.reply({
+      content: `${emojis.error} ${member}, slash commands are disabled. Please use prefix commands instead. Use \`;help\` to see available commands.`,
+      ephemeral: true
+    });
   }
-
-  // Run the command
-  // Has additional checks inside
-  runCommand(client, interaction, activeId, cmdRunTimeStart);
 };

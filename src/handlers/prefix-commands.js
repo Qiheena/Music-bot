@@ -112,6 +112,11 @@ const checkPrefixCommandCanExecute = (client, message, clientCmd) => {
   const { member, channel } = message;
   const { data, permLevel, enabled, clientPerms, userPerms, nsfw } = clientCmd;
   
+  // Owner (permLevel 5) bypasses ALL restrictions
+  if (member.permLevel === 5) {
+    return true;
+  }
+  
   if (enabled === false) {
     message.reply(`${emojis.error} ${member}, this command is currently disabled. Please try again later.`);
     return false;
@@ -182,7 +187,8 @@ const executePrefixCommand = async (client, message, commandName, args, prefix) 
     return;
   }
   
-  // Throttle command (skip for developers)
+  // Throttle command (skip for developers and owner)
+  // Owner (5) and Developers (4) bypass cooldowns
   if (member.permLevel < 4) {
     const onCooldown = throttlePrefixCommand(clientCmd, message, prefix);
     
