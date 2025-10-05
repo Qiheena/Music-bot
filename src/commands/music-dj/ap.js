@@ -36,14 +36,15 @@ module.exports = new ChatInputCommand({
       saveDb();
       
       const statusText = isAutoplayOn ? 'disabled' : 'enabled';
-      const emoji = isAutoplayOn ? emojis.error : ':gear:';
+      const emoji = isAutoplayOn ? '⏹️' : '▶️';
       
-      interaction.reply({ 
+      await interaction.reply({ 
         content: `${emojis.success} ${member}, autoplay has been **${statusText}** ${emoji}\n${
           isAutoplayOn 
-            ? 'Bot will leave when queue is empty' 
-            : 'Bot will continue playing similar songs automatically'
-        }`
+            ? '🔴 Bot will stop when queue ends' 
+            : '🔄 Bot will auto-play similar songs when queue ends'
+        }`,
+        ephemeral: false
       });
     }
     catch (e) {
