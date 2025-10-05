@@ -262,14 +262,21 @@ class StreamingExtractor extends BaseExtractor {
       const { PassThrough } = require('stream');
       
       const ytdlpProcess = spawn('yt-dlp', [
-        '-f', 'bestaudio',
+        '-f', 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
         '--no-warnings',
+        '--no-check-certificates',
+        '--geo-bypass',
+        '--prefer-free-formats',
         '-o', '-',
         url
       ]);
       
       const stream = new PassThrough();
       ytdlpProcess.stdout.pipe(stream);
+      
+      stream.on('error', (err) => {
+        logger.debug('[StreamingExtractor] Stream error caught:', err.message);
+      });
       
       let stderrOutput = '';
       
