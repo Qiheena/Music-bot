@@ -1,12 +1,22 @@
 # Overview
 
-This Discord music bot, built with Discord.js and discord-player, offers a comprehensive music playback solution for Discord servers. **Optimized for 90%+ YouTube playback**, it features hybrid architecture with download-first approach and direct streaming fallback. Key features include advanced music controls, queue management, audio filtering, customizable server settings, and high-quality audio streaming. The bot is designed for self-hosting, supporting Docker deployment, and provides features like thread-based music sessions, DJ roles, and persistent configuration.
+This Discord music bot, built with Discord.js and discord-player, offers a comprehensive music playback solution for Discord servers. **Optimized for 90%+ YouTube playback**, it features streaming-only architecture using play-dl with yt-dlp fallback for maximum reliability. Key features include advanced music controls, queue management, audio filtering, customizable server settings, and high-quality audio streaming. The bot is designed for self-hosting, supporting Docker deployment, and provides features like thread-based music sessions, DJ roles, and persistent configuration.
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
 
 # Recent Changes
+
+## October 5, 2025 - Streaming-Only Architecture (v1.5.0)
+- **Removed Download Functionality**: Deleted MusicDownloadManager.js - all download methods were failing
+- **Streaming-Only Playback**: Bot now relies exclusively on direct streaming (play-dl + yt-dlp fallback)
+- **Fixed Crashes**: Removed broken yt-dlp HLS fragment downloads that caused "Unable to rename file" errors
+- **PlayDLExtractor Simplified**: Removed all download attempts, now uses only play-dl direct streaming
+- **StreamingExtractor Enhanced**: Now tries play-dl first (better YouTube support), then yt-dlp with HLS/DASH protocol filters
+- **Format Filters**: Added `protocol!=http_dash_segments` and `protocol!=m3u8_native` to avoid disk-based fragments
+- **Android Player Client**: Using YouTube android client for better compatibility
+- **Result**: Bot runs stably without crashes, playback works reliably via direct streaming
 
 ## October 5, 2025 - Play Command Fix & Autoplay Feature (v1.4.2)
 - **Fixed Play by Name**: Removed autocomplete requirement from play command - users can now directly type song names and press enter
@@ -83,28 +93,19 @@ Preferred communication style: Simple, everyday language.
 - **YouTube Optimization**: Non-YouTube sources disabled in config for maximum YouTube coverage
 
 ## Audio Processing
-- **Hybrid Playback Architecture**: Download-first with direct streaming fallback for maximum reliability
-- **MusicDownloadManager**: Dedicated service for download orchestration
-  - Concurrency control: Max 3 simultaneous downloads via p-queue
-  - Download timeout: 45 seconds per attempt
-  - Triple redundancy: ytdl-core (primary) → play-dl (fallback) → yt-dlp (final)
-  - Caching: Reuses already-downloaded files
-  - Storage: ./tmp/audio/<guildId>/<trackId>.webm
+- **Streaming-Only Architecture**: Direct streaming using play-dl with yt-dlp fallback for maximum reliability
 - **Extractors**: 
-  - PlayDLExtractor: Primary YouTube extractor with download + streaming support
-  - StreamingExtractor: Final fallback for direct YouTube streaming without downloads
+  - PlayDLExtractor: Primary YouTube extractor using play-dl direct streaming
+  - StreamingExtractor: Fallback extractor with play-dl first, then yt-dlp with HLS/DASH protocol filters
   - SpotifyExtractor: Converts Spotify tracks to YouTube equivalents
   - Other extractors (Apple Music, Vimeo, etc.): Disabled for YouTube optimization
 - **Playback Method Selection**:
-  - YouTube: Download (ytdl-core/play-dl/yt-dlp) → Direct streaming fallback
-  - Spotify: Metadata extraction → YouTube search → Download
+  - YouTube: play-dl direct streaming (primary) → yt-dlp streaming (fallback)
+  - Spotify: Metadata extraction → YouTube search → play-dl streaming
   - All queries: Forced to YouTube for 90%+ coverage
+- **Format Filters**: yt-dlp excludes `http_dash_segments`, `m3u8_native`, and `m3u8` protocols to avoid disk-based fragment downloads
 - **Duration Handling**: Tracks store duration as formatted strings (MM:SS or H:MM:SS) with milliseconds in raw.durationMS
 - **Search Accuracy**: Enhanced YouTube ranking algorithm considering Topic channels, official audio, VEVO, verified channels, exact matches, quality markers, and view count
-- **Cleanup System**: 
-  - Per-track cleanup when next track starts
-  - Per-guild cleanup on disconnect
-  - Automatic temp directory cleanup on bot startup
 - **Filters**: Support for audio filters and equalizer presets
 - **FFmpeg**: Used for audio processing and format conversion
 
@@ -134,7 +135,6 @@ Preferred communication style: Simple, everyday language.
 - **Modules**: `/src/modules/`
 - **Handlers**: `/src/handlers/`
 - **Classes**: `/src/classes/`
-- **Services**: `/src/services/` (MusicDownloadManager)
 - **Extractors**: `/src/extractors/` (PlayDLExtractor, StreamingExtractor)
 
 # External Dependencies
@@ -146,12 +146,12 @@ Preferred communication style: Simple, everyday language.
 - **@discord-player/extractor v7.1.0**: Platform extractors (Spotify conversion to YouTube)
 
 ## YouTube/Audio Processing
-- **@distube/ytdl-core v4.16.12**: Primary YouTube audio downloader
-- **play-dl v1.9.7**: YouTube/SoundCloud metadata + streaming + fallback downloader
-- **yt-dlp-wrap v2.3.12**: Third fallback YouTube downloader
+- **@distube/ytdl-core v4.16.12**: YouTube metadata extraction (legacy dependency)
+- **play-dl v1.9.7**: Primary YouTube/SoundCloud direct streaming
+- **yt-dlp-wrap v2.3.12**: Fallback YouTube streaming
 - **youtube-sr v4.3.12**: YouTube search fallback
-- **p-queue v6.6.2**: Download concurrency control
-- **fs-extra v11.3.2**: File system operations for downloads
+- **p-queue v6.6.2**: Concurrency control (legacy dependency)
+- **fs-extra v11.3.2**: File system operations (legacy dependency)
 
 ## Database
 - **LokiJS v1.5.12**: In-memory document database
