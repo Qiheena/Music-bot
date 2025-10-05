@@ -51,12 +51,14 @@ const config = {
   defaultThreadSessionStrictCommandChannel: true,
 
   // Plugins/Music source extractors
+  // PlayDL is enabled for maximum YouTube priority (90%+ music from YouTube)
+  // Other sources disabled to ensure YouTube dominance
   plugins: {
-    fileAttachments: true,
+    fileAttachments: false,
     soundCloud: false,
-    appleMusic: true,
-    vimeo: true,
-    reverbNation: true,
+    appleMusic: false,
+    vimeo: false,
+    reverbNation: false,
     playDL: true,
     deezer: false,
   },
