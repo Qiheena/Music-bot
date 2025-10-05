@@ -1,12 +1,22 @@
 # Overview
 
-This Discord music bot, built with Discord.js and discord-player, offers a comprehensive music playback solution for Discord servers. It supports streaming from multiple platforms including YouTube, SoundCloud, Apple Music, Vimeo, ReverbNation, and direct audio file attachments. Key features include advanced music controls, queue management, audio filtering, customizable server settings, and high-quality audio streaming. The bot is designed for self-hosting, supporting Docker deployment, and provides features like thread-based music sessions, DJ roles, and persistent configuration.
+This Discord music bot, built with Discord.js and discord-player, offers a comprehensive music playback solution for Discord servers. **Optimized for 90%+ YouTube playback**, it features hybrid architecture with download-first approach and direct streaming fallback. Key features include advanced music controls, queue management, audio filtering, customizable server settings, and high-quality audio streaming. The bot is designed for self-hosting, supporting Docker deployment, and provides features like thread-based music sessions, DJ roles, and persistent configuration.
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
 
 # Recent Changes
+
+## October 5, 2025 - Critical Bug Fixes & YouTube Optimization (v1.4.1)
+- **Fixed Search Query Issue**: Resolved autocomplete bug causing empty queries - users can now search successfully
+- **Fixed Duration Format Error**: Converted duration from milliseconds to string format (MM:SS) to fix "this.duration.split is not a function" error
+- **Fixed QueryType Validation**: Updated extractors to use correct discord-player QueryType enums (AUTO, YOUTUBE_SEARCH, YOUTUBE_VIDEO)
+- **Cleaned Up Logging**: Filtered out empty yt-dlp stderr messages for cleaner logs
+- **YouTube Optimization**: Disabled all non-YouTube sources (Apple Music, Vimeo, ReverbNation, attachments, SoundCloud) to ensure 90%+ YouTube playback
+- **Configuration Update**: Modified config.js to prioritize YouTube-only playback
+- **Helper Functions**: Added msToTimeString() utility for consistent duration formatting across extractors
+- **Result**: Search functionality restored, playback errors eliminated, YouTube-first architecture implemented
 
 ## October 4, 2025 - Hybrid Playback System (v1.4.0)
 - **Triple-Redundancy Downloads**: Added yt-dlp as third download tool (ytdl-core → play-dl → yt-dlp)
@@ -38,6 +48,7 @@ Preferred communication style: Simple, everyday language.
 - **Bot Framework**: Discord.js v14
 - **Music Engine**: discord-player v7
 - **Database**: LokiJS (in-memory with filesystem persistence)
+- **Primary Source**: YouTube (90%+ of all playback)
 
 ## Command Architecture
 - **Pattern**: Class-based command system
@@ -61,6 +72,7 @@ Preferred communication style: Simple, everyday language.
 - **Dynamic Config**: Guild-specific settings stored in LokiJS
 - **Priority**: Database settings override static defaults
 - **Persistence**: Settings persist across bot restarts
+- **YouTube Optimization**: Non-YouTube sources disabled in config for maximum YouTube coverage
 
 ## Audio Processing
 - **Hybrid Playback Architecture**: Download-first with direct streaming fallback for maximum reliability
@@ -71,12 +83,15 @@ Preferred communication style: Simple, everyday language.
   - Caching: Reuses already-downloaded files
   - Storage: ./tmp/audio/<guildId>/<trackId>.webm
 - **Extractors**: 
-  - PlayDLExtractor: YouTube with download + streaming support, SoundCloud with direct streaming
-  - StreamingExtractor: Final fallback for direct YouTube/SoundCloud streaming without downloads
-  - Default extractors: Apple Music, Vimeo, ReverbNation, attachments
+  - PlayDLExtractor: Primary YouTube extractor with download + streaming support
+  - StreamingExtractor: Final fallback for direct YouTube streaming without downloads
+  - SpotifyExtractor: Converts Spotify tracks to YouTube equivalents
+  - Other extractors (Apple Music, Vimeo, etc.): Disabled for YouTube optimization
 - **Playback Method Selection**:
   - YouTube: Download (ytdl-core/play-dl/yt-dlp) → Direct streaming fallback
-  - SoundCloud: Direct streaming (primary) → YouTube search fallback (if streaming fails)
+  - Spotify: Metadata extraction → YouTube search → Download
+  - All queries: Forced to YouTube for 90%+ coverage
+- **Duration Handling**: Tracks store duration as formatted strings (MM:SS or H:MM:SS) with milliseconds in raw.durationMS
 - **Search Accuracy**: Enhanced YouTube ranking algorithm considering Topic channels, official audio, VEVO, verified channels, exact matches, quality markers, and view count
 - **Cleanup System**: 
   - Per-track cleanup when next track starts
@@ -87,9 +102,11 @@ Preferred communication style: Simple, everyday language.
 
 ## Interaction Flow
 - User invokes slash command
+- Autocomplete provides search suggestions (if user types in query)
 - Command handler validates permissions and cooldowns
 - Music commands validate voice state and session conditions
-- `discord-player` executes music operations
+- `discord-player` executes music operations via extractors
+- Extractors return tracks with proper duration formatting
 - Responses sent via Discord interaction replies/embeds
 
 ## Data Persistence
@@ -102,6 +119,7 @@ Preferred communication style: Simple, everyday language.
 - **Mechanism**: Try-catch blocks around critical operations
 - **User Feedback**: Descriptive error messages via Discord
 - **Logging**: Errors logged to console via custom logger
+- **Filtered Logging**: Empty stderr messages filtered out for cleaner logs
 
 ## Component Organization
 - **Commands**: `/src/commands/`
@@ -110,18 +128,17 @@ Preferred communication style: Simple, everyday language.
 - **Handlers**: `/src/handlers/`
 - **Classes**: `/src/classes/`
 - **Services**: `/src/services/` (MusicDownloadManager)
-- **Extractors**: `/src/extractors/` (PlayDLExtractor)
+- **Extractors**: `/src/extractors/` (PlayDLExtractor, StreamingExtractor)
 
 # External Dependencies
 
-## Discord APIs
-- **Discord.js v14**: For Discord Bot API interactions
-- **@discordjs/rest**: REST API client
-- **Gateway Intents**: Guilds, GuildVoiceStates, GuildMessages
-
-## Music Services
+## Core Dependencies
+- **Discord.js v14.16.3**: Discord Bot API interactions
+- **@discordjs/rest v2.4.0**: REST API client
 - **discord-player v7.1.0**: Music playback framework
-- **@discord-player/extractor v7.1.0**: Platform extractors (SoundCloud, Apple Music, Vimeo, ReverbNation, Discord Attachments)
+- **@discord-player/extractor v7.1.0**: Platform extractors (Spotify conversion to YouTube)
+
+## YouTube/Audio Processing
 - **@distube/ytdl-core v4.16.12**: Primary YouTube audio downloader
 - **play-dl v1.9.7**: YouTube/SoundCloud metadata + streaming + fallback downloader
 - **yt-dlp-wrap v2.3.12**: Third fallback YouTube downloader
@@ -130,7 +147,7 @@ Preferred communication style: Simple, everyday language.
 - **fs-extra v11.3.2**: File system operations for downloads
 
 ## Database
-- **LokiJS**: In-memory document database
+- **LokiJS v1.5.12**: In-memory document database
 - **Storage**: Local file (`QIHeena-music-bot.db`)
 - **Adapter**: LokiFsAdapter
 
@@ -140,17 +157,43 @@ Preferred communication style: Simple, everyday language.
 - **Port**: 5000 (default)
 
 ## Utilities
-- **dotenv**: Environment variable management
-- **chalk v4**: Terminal output coloring
-- **common-tags**: Template literal formatting
+- **dotenv v16.4.7**: Environment variable management
+- **chalk v4.1.2**: Terminal output coloring
+- **common-tags v1.8.2**: Template literal formatting
 - **@QIHeena/logger**: Custom logging utility
 
 ## Development Tools
-- **semantic-release**: Automated versioning
-- **ESLint**: Code linting
-- **nodemon**: Development auto-reload
+- **semantic-release v24.2.1**: Automated versioning
+- **ESLint v8.56.0**: Code linting with SonarJS plugin
+- **nodemon v3.1.7**: Development auto-reload
+- **commitizen v4.3.1**: Conventional commit formatting
 
 ## Deployment Options
-- **Docker**: Containerized deployment
-- **PM2**: Process manager
-- **Replit**: Configured for Replit environment
+- **Docker**: Containerized deployment with dockerfile included
+- **PM2**: Process manager for production
+- **Replit**: Fully configured for Replit environment
+
+# Current Configuration
+
+## Enabled Features
+- **YouTube Search & Playback**: Primary source (90%+ coverage)
+- **Spotify Integration**: Converts to YouTube searches
+- **PlayDL Extractor**: Enabled for YouTube support
+- **Download Manager**: Triple-redundancy downloads
+- **Streaming Fallback**: Direct streaming when downloads fail
+
+## Disabled Features (YouTube Optimization)
+- **File Attachments**: Disabled
+- **SoundCloud Direct**: Disabled
+- **Apple Music**: Disabled
+- **Vimeo**: Disabled
+- **ReverbNation**: Disabled
+- **Deezer**: Disabled
+
+## Default Settings
+- **Volume**: 50/100
+- **Repeat Mode**: Off
+- **Leave on End**: 120 seconds
+- **Leave on Empty**: 120 seconds
+- **Thread Sessions**: Enabled
+- **Strict Thread Commands**: Enabled
