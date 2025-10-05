@@ -3,6 +3,17 @@ const play = require('play-dl');
 const youtubeSr = require('youtube-sr').default;
 const logger = require('@QIHeena/logger');
 
+function msToTimeString(ms) {
+  const seconds = Math.floor((ms / 1000) % 60);
+  const minutes = Math.floor((ms / (1000 * 60)) % 60);
+  const hours = Math.floor(ms / (1000 * 60 * 60));
+  
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
 class StreamingExtractor extends BaseExtractor {
   static identifier = 'com.playernix.streaming';
 
@@ -21,9 +32,9 @@ class StreamingExtractor extends BaseExtractor {
       return true;
     }
     
-    if (type === this.context.QueryType.AUTO_SEARCH || 
-        type === this.context.QueryType.SEARCH ||
-        type === this.context.QueryType.YOUTUBE_SEARCH) {
+    if (type === this.context.QueryType.AUTO || 
+        type === this.context.QueryType.YOUTUBE_SEARCH ||
+        type === this.context.QueryType.YOUTUBE_VIDEO) {
       return true;
     }
     
@@ -66,10 +77,12 @@ class StreamingExtractor extends BaseExtractor {
   async handleYouTubeUrl(url, context) {
     try {
       const info = await play.video_basic_info(url);
+      const durationMs = info.video_details.durationInSec * 1000;
       const track = this.createTrack({
         title: info.video_details.title,
         url: info.video_details.url,
-        duration: info.video_details.durationInSec * 1000,
+        duration: msToTimeString(durationMs),
+        durationMs: durationMs,
         thumbnail: info.video_details.thumbnails[0]?.url || '',
         author: info.video_details.channel.name,
         views: info.video_details.views,
@@ -90,11 +103,13 @@ class StreamingExtractor extends BaseExtractor {
   async handleSoundCloudUrl(url, context) {
     try {
       const scInfo = await play.soundcloud(url);
+      const durationMs = scInfo.durationInMs;
       
       const track = this.createTrack({
         title: scInfo.name,
         url: scInfo.url,
-        duration: scInfo.durationInMs,
+        duration: msToTimeString(durationMs),
+        durationMs: durationMs,
         thumbnail: scInfo.thumbnail,
         author: scInfo.user?.name || scInfo.publisher?.[0]?.name || 'Unknown',
         views: scInfo.playCount || 0,
@@ -172,11 +187,13 @@ class StreamingExtractor extends BaseExtractor {
       }
 
       const topResult = searched[0];
+      const durationMs = (topResult.durationInSec || 0) * 1000;
       
       const track = this.createTrack({
         title: topResult.title,
         url: topResult.url,
-        duration: (topResult.durationInSec || 0) * 1000,
+        duration: msToTimeString(durationMs),
+        durationMs: durationMs,
         thumbnail: topResult.thumbnails?.[0]?.url || '',
         author: topResult.channel?.name || 'Unknown',
         views: topResult.views || 0,
@@ -210,7 +227,8 @@ class StreamingExtractor extends BaseExtractor {
     track.raw = { 
       originalUrl: data.url, 
       streamingMode: data.streamingMode,
-      source: data.source
+      source: data.source,
+      durationMS: data.durationMs
     };
     return track;
   }
