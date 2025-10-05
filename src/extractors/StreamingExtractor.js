@@ -244,17 +244,16 @@ class StreamingExtractor extends BaseExtractor {
       
       logger.info('[StreamingExtractor] Starting direct stream for:', { url, source });
       
-      if (source === 'soundcloud') {
-        logger.debug('[StreamingExtractor] Using SoundCloud direct streaming via play-dl');
-        try {
-          const stream = await play.stream(url, { discordPlayerCompatibility: true });
-          return {
-            stream: stream.stream,
-            type: stream.type
-          };
-        } catch (scError) {
-          logger.syserr('[StreamingExtractor] SoundCloud play-dl failed, trying yt-dlp:', scError.message);
-        }
+      try {
+        logger.debug('[StreamingExtractor] Trying play-dl streaming first');
+        const stream = await play.stream(url, { discordPlayerCompatibility: true });
+        logger.debug('[StreamingExtractor] play-dl stream created successfully');
+        return {
+          stream: stream.stream,
+          type: stream.type
+        };
+      } catch (playDlError) {
+        logger.debug('[StreamingExtractor] play-dl failed, trying yt-dlp fallback:', playDlError.message);
       }
       
       logger.debug('[StreamingExtractor] Using yt-dlp for streaming');
@@ -262,11 +261,12 @@ class StreamingExtractor extends BaseExtractor {
       const { PassThrough } = require('stream');
       
       const ytdlpProcess = spawn('yt-dlp', [
-        '-f', 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
+        '-f', 'bestaudio[protocol!=http_dash_segments][protocol!=m3u8_native][protocol!=m3u8]/bestaudio',
         '--no-warnings',
         '--no-check-certificates',
         '--geo-bypass',
-        '--prefer-free-formats',
+        '--no-playlist',
+        '--extractor-args', 'youtube:player_client=android',
         '-o', '-',
         url
       ]);
