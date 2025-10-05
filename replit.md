@@ -8,6 +8,17 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## October 5, 2025 - Prefix Command Support (v1.6.0)
+- **Guild-Specific Prefixes**: Each server can now set its own command prefix (default: `;`) using `/setprefix`
+- **Command Aliases**: Added short aliases for all basic commands (e.g., `p` → play, `s` → skip, `stp` → stop, `bst` → stats)
+- **Hybrid Command System**: Supports both slash commands (/) and prefix commands (;) simultaneously
+- **Smart Command Filtering**: Complex commands with subcommands (admin/DJ tools) automatically require slash commands
+- **MessageContent Intent**: Added message reading capability for prefix command parsing
+- **Interaction Shim**: Built compatibility layer with typed option getters (getString, getInteger, getNumber, getBoolean, getUser, getChannel, getRole)
+- **Prefix Commands Available**: play, skip, stop, pause, resume, queue, now-playing, stats, lyrics, search, history, save-song, shuffle, repeat-mode, volume, and more
+- **Admin Commands**: DJ roles, music channels, audio filters still require slash commands for proper subcommand support
+- **Result**: Users can now use quick prefix commands like `;p song name` or `;s` for faster music control
+
 ## October 5, 2025 - Performance Optimization & Reliability Fixes (v1.5.1)
 - **PlayDLExtractor Optimization**: Disabled streaming method - now only handles metadata extraction (saves 2-3 seconds per URL)
 - **StreamingExtractor Simplified**: Direct yt-dlp streaming only - removed play-dl streaming attempt (saves 1-2 seconds)
