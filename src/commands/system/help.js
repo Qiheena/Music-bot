@@ -53,7 +53,7 @@ module.exports = new ChatInputCommand({
     // Checking if the commandName is a valid client command
     if (!clientCmd) {
       interaction.reply({
-        content: `${ emojis.error } ${ member }, I couldn't find the command **\`/${ commandName }\`**`,
+        content: `${ emojis.error } ${ member }, I couldn't find the command **\`${ commandName }\`**`,
         ephemeral: true
       });
       return;

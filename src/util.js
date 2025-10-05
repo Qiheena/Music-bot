@@ -237,7 +237,7 @@ const handlePaginationButtons = (i, componentMember, pageNow, prevCustomId, next
   // Wrong user
   if (i.user.id !== componentMember.user.id) {
     i.reply({
-      content: `${ emojis.error } ${ i.user }, this component isn't meant for you, initialize it yourself by using \`/queue\` - this action has been cancelled`,
+      content: `${ emojis.error } ${ i.user }, this component isn't meant for you, initialize it yourself by using \`;queue\` - this action has been cancelled`,
       ephemeral: true
     });
     return false;

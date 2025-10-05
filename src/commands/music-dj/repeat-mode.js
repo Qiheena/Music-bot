@@ -54,7 +54,7 @@ module.exports = new ChatInputCommand({
     try {
       const queue = useQueue(interaction.guild.id);
       if (!queue) {
-        interaction.reply({ content: `${ emojis.error } ${ member }, no music is being played - initialize a session with \`/play\` first and try again, this command has been cancelled` });
+        interaction.reply({ content: `${ emojis.error } ${ member }, no music is being played - initialize a session with \`;play\` first and try again, this command has been cancelled` });
         return;
       }
 

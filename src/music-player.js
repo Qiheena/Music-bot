@@ -170,7 +170,7 @@ module.exports = (player) => {
       {
         color: colorResolver(),
         title: 'Queue Empty',
-        description: `Queue is now empty, use **\`/play\`** to add something\nLeaving channel in ${ msToHumanReadableTime((settings.leaveOnEndCooldown ?? clientConfig.defaultLeaveOnEndCooldown) * MS_IN_ONE_SECOND) } if no songs are added/enqueued`
+        description: `Queue is now empty, use **\`;play\`** to add something\nLeaving channel in ${ msToHumanReadableTime((settings.leaveOnEndCooldown ?? clientConfig.defaultLeaveOnEndCooldown) * MS_IN_ONE_SECOND) } if no songs are added/enqueued`
       }
     ] });
   });

@@ -132,7 +132,7 @@ module.exports = new ChatInputCommand({
         // Resolve output
         const outputStr = djRoleIds[0]
           ? djRoleIds.map((e) => `<@&${ e }>`).join(` ${ emojis.separator } `)
-          : 'None configured yet, restrict powerful music commands to specific roles by using the `/dj-roles add` command. If empty/none, these commands are reserved for the Administrator permission level and up';
+          : 'None configured yet, restrict powerful music commands to specific roles by using the `;dj-roles add <role>` command. If empty/none, these commands are reserved for the Administrator permission level and up';
 
         // Attach as file instead if too long kek W
         const files = [];

@@ -15,7 +15,7 @@ module.exports = new ChatInputCommand({
     // Check has history
     const history = useHistory(guild.id);
     if (!history) {
-      interaction.reply({ content: `${ emojis.error } ${ member }, history is currently empty. You should totally \`/play\` something - but that's just my opinion.` });
+      interaction.reply({ content: `${ emojis.error } ${ member }, history is currently empty. You should totally \`;play\` something - but that's just my opinion.` });
       return;
     }
 

@@ -135,7 +135,7 @@ module.exports = new ChatInputCommand({
         // Resolve output
         const outputStr = musicChannelIds[0]
           ? musicChannelIds.map((e) => `<#${ e }>`).join(` ${ emojis.separator } `)
-          : 'None configured yet, restrict music commands to specific channels by using the `/music-channels add` command';
+          : 'None configured yet, restrict music commands to specific channels by using the `;music-channels add <channel>` command';
 
         // Attach as file instead if too long kek W
         const files = [];
