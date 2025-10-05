@@ -55,7 +55,7 @@ class PlayDLExtractor extends BaseExtractor {
         }
       }
       
-      logger.debug('[PlayDLExtractor] Handling query:', { query: searchQuery, guildId });
+      logger.debug('[PlayDLExtractor] Handling query:', searchQuery.substring(0, 100));
       
       if (searchQuery.includes('youtube.com') || searchQuery.includes('youtu.be')) {
         logger.debug('[PlayDLExtractor] YouTube URL detected');
@@ -113,13 +113,14 @@ class PlayDLExtractor extends BaseExtractor {
       return { playlist: null, tracks: [track] };
     } catch (error) {
       logger.syserr('[PlayDLExtractor] Failed to fetch YouTube info:', error.message);
+      logger.debug('[PlayDLExtractor] YouTube info error details:', { url: url?.substring(0, 80), error: error.stack?.split('\n')[0] });
       return { playlist: null, tracks: [] };
     }
   }
 
   async handleYouTubePlaylist(url, context, guildId) {
     try {
-      logger.info('[PlayDLExtractor] Fetching playlist info from:', url);
+      logger.info('[PlayDLExtractor] Fetching playlist info from:', url.substring(0, 80));
       const playlist = await play.playlist_info(url, { incomplete: true });
       
       if (!playlist || !playlist.videos || playlist.videos.length === 0) {
@@ -175,6 +176,7 @@ class PlayDLExtractor extends BaseExtractor {
       };
     } catch (error) {
       logger.syserr('[PlayDLExtractor] Failed to fetch playlist:', error.message);
+      logger.debug('[PlayDLExtractor] Playlist error details:', { url: url?.substring(0, 80), errorType: error.name, stack: error.stack?.split('\n')[0] });
       return { playlist: null, tracks: [] };
     }
   }
@@ -267,7 +269,7 @@ class PlayDLExtractor extends BaseExtractor {
       }
       
       if (!searched || searched.length === 0) {
-        logger.syserr('[PlayDLExtractor] No search results found for:', searchQuery);
+        logger.syserr('[PlayDLExtractor] No search results found for:', searchQuery.substring(0, 60));
         return { playlist: null, tracks: [] };
       }
 
@@ -358,30 +360,8 @@ class PlayDLExtractor extends BaseExtractor {
   }
 
   async stream(info) {
-    try {
-      const source = info.raw?.source || 'youtube';
-      const url = info.url || info.raw?.youtubeUrl || info.raw?.soundcloudUrl;
-      
-      if (!url) {
-        throw new Error('No URL provided for streaming');
-      }
-      
-      logger.info('[PlayDLExtractor] Using direct streaming for:', { url, source });
-      
-      const stream = await play.stream(url, { 
-        discordPlayerCompatibility: true,
-        quality: 2
-      });
-      logger.debug('[PlayDLExtractor] Stream created successfully');
-      return {
-        stream: stream.stream,
-        type: stream.type
-      };
-    } catch (error) {
-      logger.syserr('[PlayDLExtractor] Streaming failed:', error.message || error);
-      logger.debug('[PlayDLExtractor] Full error:', error);
-      throw error;
-    }
+    logger.debug('[PlayDLExtractor] Stream method called, delegating to StreamingExtractor');
+    throw new Error('PlayDLExtractor does not handle streaming, use StreamingExtractor');
   }
 }
 
