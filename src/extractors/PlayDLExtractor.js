@@ -2,7 +2,6 @@ const { BaseExtractor, Track } = require('discord-player');
 const play = require('play-dl');
 const youtubeSr = require('youtube-sr').default;
 const logger = require('@QIHeena/logger');
-const downloadManager = require('../services/MusicDownloadManager');
 
 function msToTimeString(ms) {
   const seconds = Math.floor((ms / 1000) % 60);
@@ -362,50 +361,20 @@ class PlayDLExtractor extends BaseExtractor {
     try {
       const source = info.raw?.source || 'youtube';
       const url = info.url || info.raw?.youtubeUrl || info.raw?.soundcloudUrl;
-      const guildId = info.raw?.guildId || 'default';
       
       if (!url) {
         throw new Error('No URL provided for streaming');
       }
       
-      if (source === 'soundcloud') {
-        logger.info('[PlayDLExtractor] Using direct SoundCloud streaming for:', url);
-        try {
-          const stream = await play.stream(url, { discordPlayerCompatibility: true });
-          return {
-            stream: stream.stream,
-            type: stream.type
-          };
-        } catch (scError) {
-          logger.syserr('[PlayDLExtractor] SoundCloud streaming failed, trying download fallback:', scError.message);
-        }
-      }
+      logger.info('[PlayDLExtractor] Using direct streaming for:', { url, source });
       
-      const trackId = downloadManager.generateTrackId(url);
-      info.raw = info.raw || {};
-      info.raw.trackId = trackId;
-      info.raw.guildId = guildId;
-      
-      logger.info('[PlayDLExtractor] Starting download for:', { url, guildId, trackId, source });
-      
-      try {
-        const filePath = await downloadManager.getResource(url, guildId);
-        logger.debug('[PlayDLExtractor] Download complete, file path:', filePath);
-        return {
-          stream: filePath,
-          type: 'arbitrary'
-        };
-      } catch (downloadError) {
-        logger.syserr('[PlayDLExtractor] Download failed, trying direct streaming fallback:', downloadError.message);
-        
-        const stream = await play.stream(url, { discordPlayerCompatibility: true });
-        return {
-          stream: stream.stream,
-          type: stream.type
-        };
-      }
+      const stream = await play.stream(url, { discordPlayerCompatibility: true });
+      return {
+        stream: stream.stream,
+        type: stream.type
+      };
     } catch (error) {
-      logger.syserr('[PlayDLExtractor] All streaming methods failed:', error);
+      logger.syserr('[PlayDLExtractor] Streaming failed:', error);
       throw error;
     }
   }
