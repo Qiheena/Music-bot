@@ -121,21 +121,60 @@ class PlayDLExtractor extends BaseExtractor {
   async handleYouTubePlaylist(url, context, guildId) {
     try {
       logger.info('[PlayDLExtractor] Fetching playlist info from:', url.substring(0, 80));
-      const playlist = await play.playlist_info(url, { incomplete: true });
       
-      if (!playlist || !playlist.videos || playlist.videos.length === 0) {
+      let playlist = null;
+      let videos = [];
+      
+      // Try play-dl first
+      try {
+        playlist = await play.playlist_info(url, { incomplete: true });
+        if (playlist && playlist.videos) {
+          videos = playlist.videos;
+        }
+      } catch (playDlErr) {
+        logger.debug('[PlayDLExtractor] play-dl playlist failed, trying youtube-sr:', playDlErr.message);
+        
+        // Fallback to youtube-sr for playlist
+        try {
+          const playlistId = url.match(/[?&]list=([^&]+)/)?.[1];
+          if (playlistId) {
+            const ytSrPlaylist = await youtubeSr.getPlaylist('https://www.youtube.com/playlist?list=' + playlistId);
+            if (ytSrPlaylist && ytSrPlaylist.videos) {
+              playlist = {
+                title: ytSrPlaylist.title,
+                id: playlistId,
+                thumbnail: ytSrPlaylist.thumbnail,
+                channel: { name: ytSrPlaylist.channel?.name || 'Unknown' }
+              };
+              videos = ytSrPlaylist.videos.map(v => ({
+                title: v.title,
+                url: v.url,
+                durationInSec: v.duration,
+                thumbnails: [{ url: v.thumbnail?.url }],
+                channel: { name: v.channel?.name },
+                views: v.views || 0
+              }));
+              logger.debug('[PlayDLExtractor] youtube-sr playlist fallback found', videos.length, 'videos');
+            }
+          }
+        } catch (srErr) {
+          logger.debug('[PlayDLExtractor] youtube-sr playlist also failed:', srErr.message);
+        }
+      }
+      
+      if (!playlist || !videos || videos.length === 0) {
         logger.syserr('[PlayDLExtractor] Playlist is empty or invalid');
         return { playlist: null, tracks: [] };
       }
 
-      logger.info('[PlayDLExtractor] Playlist found:', playlist.title, 'with', playlist.videos.length, 'videos');
+      logger.info('[PlayDLExtractor] Playlist found:', playlist.title, 'with', videos.length, 'videos');
       
       const tracks = [];
-      const videosToFetch = playlist.videos.slice(0, 50);
+      const videosToFetch = videos.slice(0, 50);
       
       for (const video of videosToFetch) {
         try {
-          const durationMs = video.durationInSec * 1000;
+          const durationMs = (video.durationInSec || video.duration || 0) * 1000;
           const track = this.createTrack({
             title: video.title,
             url: video.url,
