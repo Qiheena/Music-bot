@@ -38,7 +38,8 @@ const initTimerStart = process.hrtime.bigint();
 const intents = [
   GatewayIntentBits.Guilds,
   GatewayIntentBits.GuildVoiceStates,
-  GatewayIntentBits.GuildMessages
+  GatewayIntentBits.GuildMessages,
+  GatewayIntentBits.MessageContent
 ];
 const presenceActivityMap = config.presence.activities.map(
   (act) => ({
