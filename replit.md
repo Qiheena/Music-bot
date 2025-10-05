@@ -8,6 +8,14 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## October 5, 2025 - Play Command Fix & Autoplay Feature (v1.4.2)
+- **Fixed Play by Name**: Removed autocomplete requirement from play command - users can now directly type song names and press enter
+- **New /ap Command**: Added quick autoplay toggle command (short for autoplay) - enables/disables autoplay mode with one command
+- **Fixed Playlist Detection**: Improved YouTube playlist URL handling with intelligent fallback - detects playlists but falls back to single video if playlist extraction fails
+- **Crash Prevention**: Enhanced StreamingExtractor error handling to prevent bot crashes when yt-dlp fails
+- **Better yt-dlp Options**: Added geo-bypass, prefer-free-formats, and better format selection for improved streaming reliability
+- **Result**: Play by song name now works seamlessly, autoplay easily accessible, playlists work with Watch Later/Mix URLs, bot stability improved
+
 ## October 5, 2025 - Critical Bug Fixes & YouTube Optimization (v1.4.1)
 - **Fixed Search Query Issue**: Resolved autocomplete bug causing empty queries - users can now search successfully
 - **Fixed Duration Format Error**: Converted duration from milliseconds to string format (MM:SS) to fix "this.duration.split is not a function" error
@@ -102,7 +110,6 @@ Preferred communication style: Simple, everyday language.
 
 ## Interaction Flow
 - User invokes slash command
-- Autocomplete provides search suggestions (if user types in query)
 - Command handler validates permissions and cooldowns
 - Music commands validate voice state and session conditions
 - `discord-player` executes music operations via extractors
@@ -178,9 +185,10 @@ Preferred communication style: Simple, everyday language.
 ## Enabled Features
 - **YouTube Search & Playback**: Primary source (90%+ coverage)
 - **Spotify Integration**: Converts to YouTube searches
-- **PlayDL Extractor**: Enabled for YouTube support
+- **PlayDL Extractor**: Enabled for YouTube support with playlist fallback
 - **Download Manager**: Triple-redundancy downloads
 - **Streaming Fallback**: Direct streaming when downloads fail
+- **Autoplay Mode**: Quick toggle via /ap command for 24/7 playback
 
 ## Disabled Features (YouTube Optimization)
 - **File Attachments**: Disabled
