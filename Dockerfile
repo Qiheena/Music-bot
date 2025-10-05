@@ -3,12 +3,14 @@ FROM node:20-alpine
 # Create app directory
 WORKDIR /app
 
-# Install ffmpeg and build dependencies
+# Install ffmpeg, yt-dlp and build dependencies
 RUN apk add --no-cache \
     ffmpeg \
     python3 \
+    py3-pip \
     make \
-    g++
+    g++ && \
+    python3 -m pip install --no-cache-dir yt-dlp
 
 # Copy dependency files
 COPY package*.json ./

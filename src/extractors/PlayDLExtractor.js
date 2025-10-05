@@ -266,11 +266,27 @@ class PlayDLExtractor extends BaseExtractor {
       let searched = null;
       
       try {
-        searched = await play.search(searchQuery, { limit: 15, source: { youtube: 'video' } });
-        logger.debug('[PlayDLExtractor] PlayDL search found', searched?.length || 0, 'results');
+        const playDlResults = await play.search(searchQuery, { limit: 15, source: { youtube: 'video' } });
+        // Normalize play-dl results to consistent format
+        if (playDlResults && playDlResults.length > 0) {
+          searched = playDlResults.map(video => ({
+            title: video.title,
+            url: video.url,
+            durationInSec: video.durationInSec || 0,
+            thumbnails: video.thumbnails || [{ url: '' }],
+            channel: video.channel || { name: 'Unknown', verified: false },
+            views: video.views || 0
+          }));
+          logger.debug('[PlayDLExtractor] PlayDL search found', searched.length, 'results');
+        } else {
+          logger.debug('[PlayDLExtractor] PlayDL returned empty results, trying youtube-sr');
+        }
       } catch (err) {
         logger.debug('[PlayDLExtractor] PlayDL search failed, trying youtube-sr:', err.message);
-        
+      }
+      
+      // If play-dl didn't find results, try youtube-sr fallback
+      if (!searched || searched.length === 0) {
         try {
           const ytSrResults = await youtubeSr.search(searchQuery, { limit: 15, type: 'video' });
           if (ytSrResults && ytSrResults.length > 0) {
