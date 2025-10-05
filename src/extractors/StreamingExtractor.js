@@ -254,7 +254,10 @@ class StreamingExtractor extends BaseExtractor {
       ytdlpProcess.stdout.pipe(stream);
       
       ytdlpProcess.stderr.on('data', (data) => {
-        logger.debug('[StreamingExtractor] yt-dlp stderr:', data.toString().trim());
+        const message = data.toString().trim();
+        if (message) {
+          logger.debug('[StreamingExtractor] yt-dlp stderr:', message);
+        }
       });
       
       ytdlpProcess.on('error', (error) => {
