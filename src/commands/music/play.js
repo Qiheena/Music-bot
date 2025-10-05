@@ -20,7 +20,6 @@ module.exports = new ChatInputCommand({
       {
         name: 'query',
         type: ApplicationCommandOptionType.String,
-        autocomplete: true,
         description: 'The music to search/query',
         required: true
       },
