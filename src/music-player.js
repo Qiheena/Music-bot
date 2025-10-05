@@ -135,10 +135,6 @@ module.exports = (player) => {
   });
 
   player.events.on('disconnect', (queue) => {
-    downloadManager.cleanupGuild(queue.guild.id).catch(err => 
-      logger.syserr('[MusicPlayer] Failed to cleanup guild downloads:', err)
-    );
-    
     queue.metadata.channel.send({ embeds: [
       {
         color: colorResolver(),
