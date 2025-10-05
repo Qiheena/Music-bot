@@ -83,8 +83,15 @@ class PlayDLExtractor extends BaseExtractor {
   async handleYouTubeUrl(url, context, guildId) {
     try {
       if (url.includes('list=')) {
-        logger.debug('[PlayDLExtractor] Playlist URL detected (may contain video ID)');
-        return await this.handleYouTubePlaylist(url, context, guildId);
+        logger.debug('[PlayDLExtractor] URL contains playlist parameter, attempting playlist extraction');
+        const playlistResult = await this.handleYouTubePlaylist(url, context, guildId);
+        
+        if (playlistResult && playlistResult.tracks && playlistResult.tracks.length > 0) {
+          logger.debug('[PlayDLExtractor] Successfully extracted playlist with', playlistResult.tracks.length, 'tracks');
+          return playlistResult;
+        }
+        
+        logger.debug('[PlayDLExtractor] Playlist extraction failed or empty, falling back to single video extraction');
       }
       
       const info = await play.video_basic_info(url);
