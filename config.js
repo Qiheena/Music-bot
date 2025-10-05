@@ -69,7 +69,7 @@ const config = {
     status: 'online',
     activities: [
       {
-        name: '/play',
+        name: ';play',
         // One of Playing, Streaming, Listening, Watching
         type: 'Listening'
       }
@@ -79,7 +79,7 @@ const config = {
   // Permission config
   permissions: {
     // Bot Owner, highest permission level (5)
-    ownerId: '290182686365188096',
+    ownerId: process.env.OWNER_ID || '',
 
     // Bot developers, second to highest permission level (4)
     developers: [ '' ]
