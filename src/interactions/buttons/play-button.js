@@ -20,7 +20,7 @@ module.exports = new ComponentCommand({ run: async (client, interaction) => {
     url
   ] = customId.split('@');
   if (member.id !== componentMemberId) {
-    interaction.reply(`${ emojis.error } ${ member }, this component isn't meant for you, use the \`/search\` command yourself - this action has been cancelled`);
+    interaction.reply(`${ emojis.error } ${ member }, this component isn't meant for you, use the \`;search\` command yourself - this action has been cancelled`);
     return;
   }
 

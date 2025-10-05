@@ -38,7 +38,7 @@ module.exports = new ChatInputCommand({
 
     // Check is default params
     if (totalMs === 0) {
-      interaction.reply(`${ emojis.error } ${ member }, default command options provided, if you want to replay a track, use \`/replay\` - this command has been cancelled`);
+      interaction.reply(`${ emojis.error } ${ member }, default command options provided, if you want to replay a track, use \`;replay\` - this command has been cancelled`);
       return;
     }
 

@@ -178,7 +178,7 @@ const executePrefixCommand = async (client, message, commandName, args, prefix) 
   const hasSubcommands = clientCmd.data.options?.some(opt => opt.type === 1 || opt.type === 2);
   
   if (hasSubcommands) {
-    message.reply(`${emojis.error} ${member}, \`${resolvedCommandName}\` requires subcommands. Please use: \`/${resolvedCommandName}\``);
+    message.reply(`${emojis.error} ${member}, \`${resolvedCommandName}\` requires subcommands and cannot be used with prefix commands.`);
     return;
   }
   

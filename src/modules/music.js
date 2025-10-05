@@ -89,7 +89,7 @@ const requireDJ = (interaction) => {
   // Restricted for admins until DJ roles are configured
   else if (member.permLevel < 2) {
     const ctx = {
-      content: `${ emojis.error } ${ member }, you don't have the required permission level to use this command. It is reserved for Administrators and up until **\`/dj-roles\`** are configured - this command has been cancelled`,
+      content: `${ emojis.error } ${ member }, you don't have the required permission level to use this command. It is reserved for Administrators and up until **\`;dj-roles\`** are configured - this command has been cancelled`,
       ephemeral: true
     };
     if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
@@ -158,7 +158,7 @@ const requireSessionConditions = (
     && !usePlayer(guild.id)?.queue
   ) {
     const ctx = {
-      content: `${ emojis.error } ${ member }, no music is currently being played - \`/play\` something first to initialize a session`,
+      content: `${ emojis.error } ${ member }, no music is currently being played - \`;play\` something first to initialize a session`,
       ephemeral: true
     };
     if (interaction.deferred || interaction.replied) interaction.editReply(ctx);
