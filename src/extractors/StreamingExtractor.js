@@ -261,12 +261,13 @@ class StreamingExtractor extends BaseExtractor {
       const { PassThrough } = require('stream');
       
       const ytdlpProcess = spawn('yt-dlp', [
-        '-f', 'bestaudio[protocol!=http_dash_segments][protocol!=m3u8_native][protocol!=m3u8]/bestaudio',
+        '-f', 'bestaudio/best',
         '--no-warnings',
         '--no-check-certificates',
         '--geo-bypass',
         '--no-playlist',
         '--extractor-args', 'youtube:player_client=android',
+        '--hls-use-mpegts',
         '-o', '-',
         url
       ]);
