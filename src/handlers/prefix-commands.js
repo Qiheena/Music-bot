@@ -169,6 +169,14 @@ const executePrefixCommand = async (client, message, commandName, args, prefix) 
     return;
   }
   
+  // Check if command has subcommands (type 1 or 2 options)
+  const hasSubcommands = clientCmd.data.options?.some(opt => opt.type === 1 || opt.type === 2);
+  
+  if (hasSubcommands) {
+    message.reply(`${emojis.error} ${member}, \`${resolvedCommandName}\` requires subcommands. Please use: \`/${resolvedCommandName}\``);
+    return;
+  }
+  
   // Check if command can execute
   if (!checkPrefixCommandCanExecute(client, message, clientCmd)) {
     return;
@@ -184,6 +192,22 @@ const executePrefixCommand = async (client, message, commandName, args, prefix) 
     }
   }
   
+  // Parse arguments based on command options
+  const parsedArgs = {};
+  const commandOptions = clientCmd.data.options || [];
+  
+  // For commands with a single string option (like query), join all args
+  if (commandOptions.length === 1 && commandOptions[0].type === 3) {
+    parsedArgs[commandOptions[0].name] = args.join(' ');
+  } else {
+    // Map args to options by index
+    commandOptions.forEach((option, index) => {
+      if (args[index]) {
+        parsedArgs[option.name] = args[index];
+      }
+    });
+  }
+  
   // Convert message to interaction-like object for command compatibility
   const fakeInteraction = {
     member,
@@ -192,9 +216,67 @@ const executePrefixCommand = async (client, message, commandName, args, prefix) 
     user: message.author,
     createdTimestamp: message.createdTimestamp,
     options: {
-      getString: (name, required) => args[0] || (required ? '' : null),
+      getString: (name, required) => {
+        const value = parsedArgs[name];
+        if (value !== undefined) return value;
+        return required ? '' : null;
+      },
+      getInteger: (name, required) => {
+        const value = parsedArgs[name];
+        if (value !== undefined) {
+          const parsed = parseInt(value, 10);
+          return isNaN(parsed) ? (required ? 0 : null) : parsed;
+        }
+        return required ? 0 : null;
+      },
+      getNumber: (name, required) => {
+        const value = parsedArgs[name];
+        if (value !== undefined) {
+          const parsed = parseFloat(value);
+          return isNaN(parsed) ? (required ? 0 : null) : parsed;
+        }
+        return required ? 0 : null;
+      },
+      getBoolean: (name, required) => {
+        const value = parsedArgs[name];
+        if (value !== undefined) {
+          return value.toLowerCase() === 'true' || value === '1';
+        }
+        return required ? false : null;
+      },
+      getUser: (name, required) => {
+        const value = parsedArgs[name];
+        if (value && value.match(/<@!?(\d+)>/)) {
+          const userId = value.match(/<@!?(\d+)>/)[1];
+          return guild.members.cache.get(userId)?.user || (required ? message.author : null);
+        }
+        return required ? message.author : null;
+      },
+      getChannel: (name, required) => {
+        const value = parsedArgs[name];
+        if (value && value.match(/<#(\d+)>/)) {
+          const channelId = value.match(/<#(\d+)>/)[1];
+          return guild.channels.cache.get(channelId) || (required ? channel : null);
+        }
+        return required ? channel : null;
+      },
+      getRole: (name, required) => {
+        const value = parsedArgs[name];
+        if (value && value.match(/<@&(\d+)>/)) {
+          const roleId = value.match(/<@&(\d+)>/)[1];
+          return guild.roles.cache.get(roleId) || null;
+        }
+        return null;
+      },
       getAttachment: () => null,
-      // Add more option getters as needed
+      getMember: (name, required) => {
+        const value = parsedArgs[name];
+        if (value && value.match(/<@!?(\d+)>/)) {
+          const userId = value.match(/<@!?(\d+)>/)[1];
+          return guild.members.cache.get(userId) || (required ? member : null);
+        }
+        return required ? member : null;
+      }
     },
     reply: async (content) => {
       if (typeof content === 'string') {
@@ -203,14 +285,18 @@ const executePrefixCommand = async (client, message, commandName, args, prefix) 
       return message.reply(content);
     },
     editReply: async (content) => {
-      // For prefix commands, just send a new message
+      if (fakeInteraction._deferredMessage) {
+        if (typeof content === 'string') {
+          return fakeInteraction._deferredMessage.edit(content);
+        }
+        return fakeInteraction._deferredMessage.edit(content);
+      }
       if (typeof content === 'string') {
         return message.channel.send(content);
       }
       return message.channel.send(content);
     },
     deferReply: async () => {
-      // For prefix commands, send a thinking message
       const thinkingMsg = await message.channel.send(`${emojis.wait} Processing...`);
       fakeInteraction._deferredMessage = thinkingMsg;
       return thinkingMsg;
@@ -219,16 +305,6 @@ const executePrefixCommand = async (client, message, commandName, args, prefix) 
     isPrefixCommand: true,
     originalMessage: message
   };
-  
-  // Handle play command specially to support query argument
-  if (resolvedCommandName === 'play' && args.length > 0) {
-    fakeInteraction.options.getString = (name, required) => {
-      if (name === 'query') {
-        return args.join(' ');
-      }
-      return null;
-    };
-  }
   
   try {
     await clientCmd.run(client, fakeInteraction);
