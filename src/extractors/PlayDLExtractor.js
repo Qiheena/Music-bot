@@ -82,6 +82,11 @@ class PlayDLExtractor extends BaseExtractor {
 
   async handleYouTubeUrl(url, context, guildId) {
     try {
+      if (url.includes('list=') && !url.includes('&v=')) {
+        logger.debug('[PlayDLExtractor] Playlist URL detected');
+        return await this.handleYouTubePlaylist(url, context, guildId);
+      }
+      
       const info = await play.video_basic_info(url);
       const durationMs = info.video_details.durationInSec * 1000;
       const track = this.createTrack({
@@ -102,6 +107,68 @@ class PlayDLExtractor extends BaseExtractor {
       return { playlist: null, tracks: [track] };
     } catch (error) {
       logger.syserr('[PlayDLExtractor] Failed to fetch YouTube info:', error.message);
+      return { playlist: null, tracks: [] };
+    }
+  }
+
+  async handleYouTubePlaylist(url, context, guildId) {
+    try {
+      logger.info('[PlayDLExtractor] Fetching playlist info from:', url);
+      const playlist = await play.playlist_info(url, { incomplete: true });
+      
+      if (!playlist || !playlist.videos || playlist.videos.length === 0) {
+        logger.syserr('[PlayDLExtractor] Playlist is empty or invalid');
+        return { playlist: null, tracks: [] };
+      }
+
+      logger.info('[PlayDLExtractor] Playlist found:', playlist.title, 'with', playlist.videos.length, 'videos');
+      
+      const tracks = [];
+      const videosToFetch = playlist.videos.slice(0, 50);
+      
+      for (const video of videosToFetch) {
+        try {
+          const durationMs = video.durationInSec * 1000;
+          const track = this.createTrack({
+            title: video.title,
+            url: video.url,
+            duration: msToTimeString(durationMs),
+            durationMs: durationMs,
+            thumbnail: video.thumbnails?.[0]?.url || '',
+            author: video.channel?.name || 'Unknown',
+            views: video.views || 0,
+            source: 'youtube',
+            requestedBy: context.requestedBy,
+            queryType: context.type,
+            guildId
+          });
+          tracks.push(track);
+        } catch (err) {
+          logger.debug('[PlayDLExtractor] Skipping invalid video in playlist:', video.title);
+        }
+      }
+
+      if (tracks.length === 0) {
+        logger.syserr('[PlayDLExtractor] No valid tracks found in playlist');
+        return { playlist: null, tracks: [] };
+      }
+
+      logger.info('[PlayDLExtractor] Created', tracks.length, 'tracks from playlist');
+      
+      return {
+        playlist: {
+          title: playlist.title || 'YouTube Playlist',
+          thumbnail: playlist.thumbnail?.url || tracks[0]?.thumbnail || '',
+          type: 'playlist',
+          source: 'youtube',
+          author: playlist.channel?.name || 'Unknown',
+          id: playlist.id,
+          url: url
+        },
+        tracks: tracks
+      };
+    } catch (error) {
+      logger.syserr('[PlayDLExtractor] Failed to fetch playlist:', error.message);
       return { playlist: null, tracks: [] };
     }
   }
